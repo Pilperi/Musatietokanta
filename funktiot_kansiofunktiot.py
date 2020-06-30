@@ -26,7 +26,7 @@ def joinittuonko(*lista):
 	return(os.path.exists(joinittu))
 
 
-def kansion_sisalto(kansio):
+def kansion_sisalto(kansio, tiedostomuodot=[]):
 	'''
 	Käy kansion läpi ja palauttaa listat
 	sen sisältämistä tiedostoista
@@ -36,12 +36,12 @@ def kansion_sisalto(kansio):
 	kansiot = []
 	if os.path.exists(kansio):
 		asiat = os.listdir(kansio)
-		tiedostot = [a for a in asiat if os.path.isfile(os.path.join(kansio,a))]
+		tiedostot = [a for a in asiat if os.path.isfile(os.path.join(kansio,a)) and (not(tiedostomuodot) or paate(a)[1].lower() in tiedostomuodot)]
 		kansiot = [a for a in asiat if os.path.isdir(os.path.join(kansio,a))]
 	return(tiedostot,kansiot)
 
 
-def hanki_kansion_tiedostolista(kansio, tiedostomuodot=[]):
+def hanki_kansion_tiedostolista(kansio, tiedostomuodot=[], KIELLETYT=kvak.KIELLETYT):
 	'''
 	Palauttaa annetun kansion tiedostolistan,
 	ts. listan kaikista tiedostoista kansiossa ja sen alikansioista
@@ -51,7 +51,7 @@ def hanki_kansion_tiedostolista(kansio, tiedostomuodot=[]):
 	if os.path.exists(kansio):
 		for tiedosto in os.listdir(kansio):
 			# Oikeassa tiedostomuodossa oleva tiedosto:
-			if os.path.isfile(os.path.join(kansio, tiedosto)) and (not(tiedostomuodot) or tiedosto.split(".")[-1].lower() in tiedostomuodot):
+			if os.path.isfile(os.path.join(kansio, tiedosto)) and (not(tiedostomuodot) or paate(tiedosto)[1].lower() in tiedostomuodot):
 				# Käy läpi kielletyt sanat
 				ban = False
 				for sana in KIELLETYT:

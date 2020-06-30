@@ -5,11 +5,11 @@ Milloin yhteys katkeaa ja koko kansioselain menee ihan täysin juntturaan, millo
 Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatiedosto johon kirjattu missä etäkoneen biisit sijaitsevat (sikäläisessä järjestelmässä), ja scp:ttäisi ne mitä tarvitaan paikalliseen väliaikaiskansioon.
 
 	Asioita joita tarvitsee tehdä:
-		[ ] Luokkien määritelmät
+		[/] Luokkien määritelmät
 			[x] Haluttujen tietojen määrittely
-			[ ] Tietojen täyttö tiedostosta
-			[ ] Tietokantaluokka, joka käärii biisit fiksusti
-			[ ] Kirjoitus- ja lukufunktiot
+			[x] Tietojen täyttö tiedostosta
+			[x] Tietokantaluokka, joka käärii biisit fiksusti
+			[/] Kirjoitus- ja lukufunktiot
 			[ ] Hakufunktiot
 
 		[ ] Pythonin kautta pyöritettävä SCP

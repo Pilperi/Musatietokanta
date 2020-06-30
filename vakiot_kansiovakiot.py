@@ -1,1 +1,2 @@
-MUSATIEDOSTOT = ["mp3", "flac", "wav", "wma"]
+MUSATIEDOSTOT = ["mp3", "flac", "wma"]
+KIELLETYT = []
