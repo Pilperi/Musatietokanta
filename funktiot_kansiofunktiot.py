@@ -1,6 +1,19 @@
 import os
 import shutil
+import subprocess
 import vakiot_kansiovakiot as kvak
+
+def lataa(vainbiisi, servu, kansiopolku, kohde):
+	'''
+	Lataa SCP:llä biisi tai kansio serveriltä 'servu.'
+	'''
+	if vainbiisi:
+		koodi = subprocess.call(["scp", servu+":"+kansiopolku, kohde])
+	else:
+		koodi = subprocess.call(["scp","-r", servu+":"+kansiopolku, kohde])
+	if koodi != 1:
+		return(True)
+	return(False)
 
 #------------Funktiot kansiorakenteiden läpikäymiseen--------------------------
 def paate(tiedosto):

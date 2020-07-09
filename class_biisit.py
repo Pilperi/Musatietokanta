@@ -27,6 +27,7 @@ class Tiedostopuu():
 	kirjoitettua tiedostoon fiksusti ja luettua sieltä ulos.
 	'''
 	def __init__(self, kansio, edellinenkansio=None, syvennystaso=0):
+		print(kansio)
 		self.edellinentaso  = edellinenkansio	# edellinen kansio (Tiedostopuu tai None)
 		self.syvennystaso	= syvennystaso		# int, monesko kerros menossa
 		self.kansio			= kansio 			# str, pelkkä kansionimi jollei ylin kansio
@@ -69,7 +70,7 @@ class Tiedostopuu():
 		Kansiot ja biisit erottaa siitä että biisien tiedot on {} välissä
 		ja kansioiden nimet eivät ala "{" ja lopu "}" (...eihän?)
 		'''
-		st = "{:s}{:s}\n".format(" "*self.syvennystaso, self.kansio)
+		st = "{:s}\"{:s}\"\n".format(" "*self.syvennystaso, self.kansio)
 		for biisi in self.biisit:
 			st += "{:s}{:s}\n".format(" "*(self.syvennystaso+1), str(biisi))
 		for kansio in self.alikansiot:
@@ -151,10 +152,16 @@ class Biisi():
 					self.biisinimi		= tagit.get("title")[0]
 				if tagit.get("date"):
 					self.vuosi			= tagit.get("date")[0]
-				if tagit.get("tracknumber") and all([a.isnumeric for a in tagit.get("tracknumber")[0]]):
-					self.raita			= int(tagit.get("tracknumber")[0])
-				if tagit.get("tracktotal") and all([a.isnumeric for a in tagit.get("tracktotal")[0]]):
-					self.raitoja		= int(tagit.get("tracktotal")[0])
+				raitatiedot = self.raitatiedot(tagit.get("tracknumber"))
+				if raitatiedot:
+					self.raita			= raitatiedot[0]
+				if raitatiedot and raitatiedot[1] is not None:
+					self.raitoja = raitatiedot[1]
+				elif tagit.get("tracktotal") and all([a.isnumeric for a in tagit.get("tracktotal")[0]]):
+					try:
+						self.raitoja		= int(tagit.get("tracktotal")[0])
+					except ValueError:
+						self.raitoja 		= 0
 				self.lisayspaiva	= self.paivays()[0]
 			elif paate == "wma":
 				# Tää on kamala eikä pitäisi olla vuonna 2020
@@ -182,9 +189,15 @@ class Biisi():
 		if raitatagi:
 			splitattu = raitatagi[0].split("/")
 			if all([a.isnumeric for a in splitattu[0]]):
-				raita = int(splitattu[0])
+				try:
+					raita = int(splitattu[0])
+				except ValueError:
+					raita = 0
 			if len(splitattu) > 1 and all([a.isnumeric for a in splitattu[1]]):
-				raitoja = int(splitattu[1])
+				try:
+					raitoja = int(splitattu[1])
+				except ValueError:
+					raitoja = 0
 		return((raita, raitoja))
 
 	def paivays(self, lue=None):
@@ -242,11 +255,32 @@ class Biisi():
 		return(json.dumps(diktiversio))
 
 
+class Hakukriteerit:
+	'''
+	Hakukriteerien luokka.
+	Helpompi että kriteerinäätitelmät on täällä
+	piilossa kuin että roikkuvat jossain
+	erillisessä funktiossa tmv. (?)
+	'''
+	def __init__(self, dikti={}):
+		self.biisinimessa    = dikti.get("biisissa") # lista stringejä
+		self.albuminimessa   = dikti.get("albumissa")
+		self.tiedostonimessa = dikti.get("tiedostossa")
+		self.raitanumero     = dikti.get("raitanumero") # tuple inttejä
+
+	def tarkista(self, biisi):
+		'''
+		Tarkista biisistä, täyttääkö se annetut hakuehdot.
+		'''
+		pass
+
 if __name__ == "__main__":
-	testikansio = "/home/pilperi/Scripts/Musatietokanta/Testikansio/"
-	puu = Tiedostopuu(testikansio)
-	# print(puu)
-	tietokantatiedosto = "/home/pilperi/Scripts/Musatietokanta/ulosanti.tietokanta"
-	f = open("ulosanti.tietokanta", "w+")
-	f.write(str(puu))
-	f.close()
+	t1 = time.time()
+	for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
+		puu = Tiedostopuu(lokaali_musakansio)
+		tietokantatiedosto = kvak.LOKAALIT_TIETOKANNAT[i]
+		f = open(tietokantatiedosto, "w+")
+		f.write(str(puu))
+		f.close()
+	t2 = time.time()
+	print("Aikaa kului {:.2f} s".format(t2-t1))
