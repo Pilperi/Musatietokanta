@@ -9,10 +9,10 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 			[x] Haluttujen tietojen määrittely
 			[x] Tietojen täyttö tiedostosta
 			[x] Tietokantaluokka, joka käärii biisit fiksusti
-			[/] Kirjoitus- ja lukufunktiot
+			[x] Kirjoitus- ja lukufunktiot
 			[ ] Hakufunktiot
 
-		[ ] Pythonin kautta pyöritettävä SCP
+		[/] Pythonin kautta pyöritettävä SCP
 
 		[ ] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
 

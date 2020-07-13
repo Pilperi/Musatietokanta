@@ -26,15 +26,13 @@ class Tiedostopuu():
 	Pääpointti lähinnä siinä, että asiat saadaan
 	kirjoitettua tiedostoon fiksusti ja luettua sieltä ulos.
 	'''
-	def __init__(self, kansio, edellinenkansio=None, syvennystaso=0):
-		print(kansio)
+	def __init__(self, kansio=None, edellinenkansio=None, syvennystaso=0):
+		# print(kansio)
 		self.edellinentaso  = edellinenkansio	# edellinen kansio (Tiedostopuu tai None)
 		self.syvennystaso	= syvennystaso		# int, monesko kerros menossa
 		self.kansio			= kansio 			# str, pelkkä kansionimi jollei ylin kansio
 		self.biisit 		= [] 				# Lista biisejä
 		self.alikansiot		= [] 				# Lista Tiedostopuita
-
-		self.kansoita()
 
 	def kansoita(self):
 		'''
@@ -47,7 +45,54 @@ class Tiedostopuu():
 			self.biisit.append(Biisi(os.path.join(self.hae_nykyinen_polku(), biisi)))
 		# Alikansiot yhtä tasoa syvemmällä, ole näiden 'edellinenkansio'
 		for kansio in alikansiot:
-			self.alikansiot.append(Tiedostopuu(kansio, self, self.syvennystaso+1))
+			self.alikansiot.append(Tiedostopuu(kansio, self, self.syvennystaso+1).kansoita())
+
+	def lue_tiedostosta(self, tiedosto):
+		'''
+		Lue puurakenne tietokantatiedostosta.
+		Huom. 'tiedosto' on tiedostokahva (vai mikälie), ei tiedostopolku str
+		'''
+		rivi = tiedosto.readline()
+		# Jos pääkansio, lue tietokannan pääkansion nimi
+		# ekalta riviltä ja siirry seuraavalle
+		if self.syvennystaso == 0 and rivi and rivi[0] == "\"":
+			kansionimi = ""
+			i = 1
+			while rivi[i] != "\"":
+				kansionimi += rivi[i]
+				i += 1
+			self.kansio = kansionimi
+			rivi = tiedosto.readline()
+		# print("\nKansio: {}\nEdellinen: {}\nSyvennystaso: {}".format(self.kansio, self.edellinentaso, self.syvennystaso))
+		while rivi:
+			# Laske syvennystaso
+			syvennys = 0
+			while rivi[syvennys] == " ":
+				syvennys += 1
+			# print("Asian taso: {}".format(syvennys))
+			if syvennys == self.syvennystaso+1:
+				# Tapaus biisi nykyisellä syvennystasolla: lisää biisilistaan
+				if rivi[syvennys] == "{":
+					# print("Tämän kansion biisi")
+					diktibiisi = json.loads(rivi[syvennys:-1])
+					self.biisit.append(Biisi(diktibiisi))
+					rivi = tiedosto.readline()
+				# Tapaus kansio: lisää Tiedostopuu alikansioihin
+				elif rivi[syvennys] == "\"":
+					# Lue kansion nimi, joka on "" välissä
+					syvennys += 1
+					kansionimi = ""
+					while rivi[syvennys] != "\"":
+						kansionimi += rivi[syvennys]
+						syvennys += 1
+					# print("Kansion {} alikansio {}".format(self.kansio, kansionimi))
+					alipuu = Tiedostopuu(kansionimi, self.kansio, self.syvennystaso+1)
+					rivi = alipuu.lue_tiedostosta(tiedosto)
+					self.alikansiot.append(alipuu)
+			else:
+				# Palauta viimeisin rivi, koska sitä tarvitaan vielä ylemmällä tasolla
+				# print("Alemman tason asia.")
+				return(rivi)
 
 	def hae_nykyinen_polku(self):
 		'''
@@ -111,7 +156,7 @@ class Biisi():
 
 		# Lukukohteena dikti (luettu tiedostosta tmv)
 		elif type(kohteesta) is dict:
-			self.lue_diktista(dikti)
+			self.lue_diktista(kohteesta)
 
 	def lue_tiedostosta(self, tiedostopolku):
 		'''
@@ -275,9 +320,20 @@ class Hakukriteerit:
 		pass
 
 if __name__ == "__main__":
+	# Testataan tietojen lukua tietokantatiedostosta
+	for musatietokanta in kvak.LOKAALIT_TIETOKANNAT:
+		f = open(musatietokanta, "r")
+		puu = Tiedostopuu()
+		puu.lue_tiedostosta(f)
+		f.close()
+		o = open(musatietokanta.replace(".tietokanta", "_kopioitu.tietokanta"), "w+")
+		o.write(str(puu))
+		o.close()
+	# Testaa tietojen lukua kovalevyltä
 	t1 = time.time()
 	for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
 		puu = Tiedostopuu(lokaali_musakansio)
+		puu.kansoita()
 		tietokantatiedosto = kvak.LOKAALIT_TIETOKANNAT[i]
 		f = open(tietokantatiedosto, "w+")
 		f.write(str(puu))
