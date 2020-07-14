@@ -15,6 +15,7 @@ from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC
 import vakiot_kansiovakiot as kvak
 import funktiot_kansiofunktiot as kfun
+import multiprocessing
 
 # TULOSTA = True
 TULOSTA = False
@@ -93,7 +94,7 @@ class Tiedostopuu():
 						kansionimi += rivi[syvennys]
 						syvennys += 1
 					# print("Kansion {} alikansio {}".format(self.kansio, kansionimi))
-					alipuu = Tiedostopuu(kansionimi, self.kansio, self.syvennystaso+1)
+					alipuu = Tiedostopuu(kansionimi, self, self.syvennystaso+1)
 					rivi = alipuu.lue_tiedostosta(tiedosto)
 					self.alikansiot.append(alipuu)
 			else:
@@ -108,6 +109,8 @@ class Tiedostopuu():
 		polku = [self.kansio]
 		ylempitaso = self.edellinentaso
 		while ylempitaso is not None:
+			if type(ylempitaso) is str:
+				print(ylempitaso)
 			polku.append(ylempitaso.kansio)
 			ylempitaso = ylempitaso.edellinentaso
 		polku.reverse()
@@ -326,8 +329,9 @@ class Hakukriteerit:
 
 		self.hakukriteereita = len(dikti.keys())-1
 		self.tulospuu        = None                     # Tiedostopuu hakutuloksille
+		self.hakutuloksia    = 0                        # Montako tulosta löytyi
 
-	def tarkista_biisi(self, biisi):
+	def tarkista_biisi(self, biisi, puu):
 		'''
 		Tarkista biisistä, täyttääkö se annetut hakuehdot.
 		Jos jokin annetuista hakuehdoista ei täsmää, palauta False.
@@ -337,46 +341,47 @@ class Hakukriteerit:
 		# Artistin nimellä haku
 		if self.artistinimessa is not None and type(biisi.esittaja) is str:
 			if self.ehtona_ja:
-				if not(all([a in biisi.esittaja for a in self.artistinimessa])):
+				if not(all([a in biisi.esittaja.lower() for a in self.artistinimessa])):
 					# print("{}: artistin nimi ei täsmää".format(biisi.esittaja))
 					return(False)
 			else:
-				if not(any([a in biisi.esittaja for a in self.artistinimessa])):
+				if not(any([a in biisi.esittaja.lower() for a in self.artistinimessa])):
 					# print("{}: artistin nimi ei täsmää".format(biisi.esittaja))
 					return(False)
 			tayttyneet_kriteerit += 1
 		# Biisin nimellä haku
 		if self.biisinimessa is not None and type(biisi.biisinimi) is str:
 			if self.ehtona_ja:
-				if not(all([a in biisi.biisinimi for a in self.biisinimessa])):
+				if not(all([a in biisi.biisinimi.lower() for a in self.biisinimessa])):
 					# print("{}: biisin nimi ei täsmää".format(biisi.biisinimi))
 					return(False)
 			else:
-				if not(any([a in biisi.biisinimi for a in self.biisinimessa])):
+				if not(any([a in biisi.biisinimi.lower() for a in self.biisinimessa])):
 					# print("{}: biisin nimi ei täsmää".format(biisi.biisinimi))
 					return(False)
 			tayttyneet_kriteerit += 1
 		# Albumin nimellä haku
 		if self.albuminimessa is not None and type(biisi.albuminimi) is str:
 			if self.ehtona_ja:
-				if not(all([a in biisi.albuminimi for a in self.albuminimessa])):
+				if not(all([a in biisi.albuminimi.lower() for a in self.albuminimessa])):
 					# print("{}: albumin nimi ei täsmää".format(biisi.albuminimi))
 					return(False)
 			else:
-				if not(any([a in biisi.albuminimi for a in self.albuminimessa])):
+				if not(any([a in biisi.albuminimi.lower() for a in self.albuminimessa])):
 					# print("{}: albumin nimi ei täsmää".format(biisi.albuminimi))
 					return(False)
 			tayttyneet_kriteerit += 1
-		# Tiedoston nimellä haku
+		# Tiedoston nimellä haku (biisin tiedostonimi tai kansionimi)
 		if self.tiedostonimessa is not None and type(biisi.tiedostonimi) is str:
-			if self.ehtona_ja:
-				if not(all([a in biisi.tiedostonimi for a in self.tiedostonimessa])):
-					# print("{}: tiedostonimi ei täsmää".format(biisi.tiedostonimi))
-					return(False)
-			else:
-				if not(any([a in biisi.tiedostonimi for a in self.tiedostonimessa])):
-					print("{}: tiedostonimi ei täsmää".format(biisi.tiedostonimi))
-					return(False)
+			if not self.tarkista_kansio(puu):
+				if self.ehtona_ja:
+					if not all([a in biisi.tiedostonimi.lower() for a in self.tiedostonimessa]):
+						# print("{}: tiedostonimi ei täsmää".format(biisi.tiedostonimi))
+						return(False)
+				else:
+					if not any([a in biisi.tiedostonimi.lower() for a in self.tiedostonimessa]):
+						# print("{}: tiedostonimi ei täsmää".format(biisi.tiedostonimi))
+						return(False)
 			tayttyneet_kriteerit += 1
 		# Raitanumeron perusteella haku
 		if self.raitanumero is not None and type(biisi.raita) is int:
@@ -391,6 +396,23 @@ class Hakukriteerit:
 		# print("Ei riittävästi täyttyneitä kriteereitä: {}/{}".format(tayttyneet_kriteerit, self.hakukriteereita))
 		return(False)
 
+	def tarkista_kansio(self, puu):
+		'''
+		Joskus on paikallaan hakea stringiä tiedostopolusta
+		mukaanlukien kansion nimi. Simppeli funktio erillään
+		biisitarkastuksesta, koska biisien tiedoissa ei ole tietoa
+		kansiopolusta.
+		'''
+		if self.tiedostonimessa is not None:
+			puupolku = puu.hae_nykyinen_polku().lower()
+			if self.ehtona_ja and not all([a in puupolku for a in self.tiedostonimessa]):
+				return(False)
+			elif (not self.ehtona_ja) and (not any([a in puupolku for a in self.tiedostonimessa])):
+				return(False)
+			return True
+		return(False)
+
+
 	def etsi_tietokannasta(self, puu, uusipuu=None):
 		'''
 		Etsi annetusta tiedostopuusta kaikki biisit jotka täyttävät
@@ -400,7 +422,8 @@ class Hakukriteerit:
 		if self.tulospuu is None:
 			self.tulospuu = Tiedostopuu(puu.kansio)
 		for biisi in puu.biisit:
-			if self.tarkista_biisi(biisi):
+			if self.tarkista_biisi(biisi, puu):
+				self.hakutuloksia += 1
 				# print("{} täyttää hakuehdot".format(biisi.biisinimi))
 				tuloksia = True
 				if uusipuu is None:
@@ -411,11 +434,13 @@ class Hakukriteerit:
 					uusipuu.biisit.append(biisi)
 		for alikansio in puu.alikansiot:
 			# Katso rekursiivisesti, onko alikansiossa yhtään osumaa.
-			# Jos on, lisää tulospuun alikansio-osastolle
+			# Jos on, lisää tulospuun alikansio-osastolle.
+			# On myös mahdollista että koko alikansio on validi,
+			# koska kansion nimessä on 'tiedostonimi'-hakustringin osuma.
 			if uusipuu is None:
-				alipuu = Tiedostopuu(alikansio.kansio, puu.kansio, puu.syvennystaso+1)
+				alipuu = Tiedostopuu(alikansio.kansio, puu, puu.syvennystaso+1)
 			else:
-				alipuu = Tiedostopuu(alikansio.kansio, uusipuu.kansio, uusipuu.syvennystaso+1)
+				alipuu = Tiedostopuu(alikansio.kansio, uusipuu, uusipuu.syvennystaso+1)
 			kansiossa_oli, tuloskansio = self.etsi_tietokannasta(alikansio, uusipuu=alipuu)
 			if kansiossa_oli and uusipuu is None:
 				tuloksia = True
@@ -426,6 +451,7 @@ class Hakukriteerit:
 		if uusipuu is None:
 			uusipuu = self.tulospuu
 		return(tuloksia, uusipuu)
+
 
 if __name__ == "__main__":
 	# Testataan tietojen lukua tietokantatiedostosta
@@ -453,16 +479,16 @@ if __name__ == "__main__":
 	# Testaa hakukriteereiden käyttöä:
 	hakudikti = {
 				"ehtona_ja":     False,
-				"artistissa":    ["妖精", "亭刻"],
-				"biisissa":      ["ノゾム"],
-				# "biisissa":      ["nakamura"],
+				# "artistissa":    ["妖精", "亭刻"],
+				# "biisissa":      ["ノゾム", "神"],
 				# "albumissa":     ["神"],
-				# "tiedostossa":   ["derp"],
-				# "raitanumero":   (1,3)
+				# "tiedostossa":   ["eroge"],
+				"raitanumero":   (1,3)
 				}
 	haku = Hakukriteerit(hakudikti)
 	oli_tuloksia, tulokset = haku.etsi_tietokannasta(puu)
-	print(f"Tuloksia: {oli_tuloksia}")
+	print("Tuloksia: {:d}".format(haku.hakutuloksia))
+	# Kirjaa tulokset tiedostoon
 	f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
 	f.write(str(tulokset))
 	f.close()
