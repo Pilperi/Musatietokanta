@@ -10,7 +10,7 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 			[x] Tietojen täyttö tiedostosta
 			[x] Tietokantaluokka, joka käärii biisit fiksusti
 			[x] Kirjoitus- ja lukufunktiot
-			[/] Hakufunktiot
+			[x] Hakufunktiot (RAM, ei suoraan tiedostosta)
 
 		[/] Pythonin kautta pyöritettävä SCP
 

@@ -16,7 +16,8 @@ from mutagen.flac import FLAC
 import vakiot_kansiovakiot as kvak
 import funktiot_kansiofunktiot as kfun
 
-TULOSTA = True
+# TULOSTA = True
+TULOSTA = False
 
 class Tiedostopuu():
 	'''
@@ -323,75 +324,145 @@ class Hakukriteerit:
 		self.tiedostonimessa = dikti.get("tiedostossa") # lista stringejä
 		self.raitanumero     = dikti.get("raitanumero") # tuple inttejä
 
-	def tarkista(self, biisi):
+		self.hakukriteereita = len(dikti.keys())-1
+		self.tulospuu        = None                     # Tiedostopuu hakutuloksille
+
+	def tarkista_biisi(self, biisi):
 		'''
 		Tarkista biisistä, täyttääkö se annetut hakuehdot.
 		Jos jokin annetuista hakuehdoista ei täsmää, palauta False.
 		Jos mikään ei palauta Falsea, ehdot täyttyvät.
 		'''
+		tayttyneet_kriteerit = 0
 		# Artistin nimellä haku
 		if self.artistinimessa is not None and type(biisi.esittaja) is str:
 			if self.ehtona_ja:
 				if not(all([a in biisi.esittaja for a in self.artistinimessa])):
+					# print("{}: artistin nimi ei täsmää".format(biisi.esittaja))
 					return(False)
 			else:
 				if not(any([a in biisi.esittaja for a in self.artistinimessa])):
+					# print("{}: artistin nimi ei täsmää".format(biisi.esittaja))
 					return(False)
+			tayttyneet_kriteerit += 1
 		# Biisin nimellä haku
 		if self.biisinimessa is not None and type(biisi.biisinimi) is str:
 			if self.ehtona_ja:
 				if not(all([a in biisi.biisinimi for a in self.biisinimessa])):
+					# print("{}: biisin nimi ei täsmää".format(biisi.biisinimi))
 					return(False)
 			else:
 				if not(any([a in biisi.biisinimi for a in self.biisinimessa])):
+					# print("{}: biisin nimi ei täsmää".format(biisi.biisinimi))
 					return(False)
+			tayttyneet_kriteerit += 1
 		# Albumin nimellä haku
 		if self.albuminimessa is not None and type(biisi.albuminimi) is str:
 			if self.ehtona_ja:
 				if not(all([a in biisi.albuminimi for a in self.albuminimessa])):
+					# print("{}: albumin nimi ei täsmää".format(biisi.albuminimi))
 					return(False)
 			else:
 				if not(any([a in biisi.albuminimi for a in self.albuminimessa])):
+					# print("{}: albumin nimi ei täsmää".format(biisi.albuminimi))
 					return(False)
+			tayttyneet_kriteerit += 1
 		# Tiedoston nimellä haku
 		if self.tiedostonimessa is not None and type(biisi.tiedostonimi) is str:
 			if self.ehtona_ja:
 				if not(all([a in biisi.tiedostonimi for a in self.tiedostonimessa])):
+					# print("{}: tiedostonimi ei täsmää".format(biisi.tiedostonimi))
 					return(False)
 			else:
 				if not(any([a in biisi.tiedostonimi for a in self.tiedostonimessa])):
+					print("{}: tiedostonimi ei täsmää".format(biisi.tiedostonimi))
 					return(False)
+			tayttyneet_kriteerit += 1
 		# Raitanumeron perusteella haku
 		if self.raitanumero is not None and type(biisi.raita) is int:
 			if biisi.raita not in range(self.raitanumero[0], self.raitanumero[1]+1):
+				# print("{}: raitanumero ei täsmää".format(biisi.raita))
 				return(False)
-		return(True)
+			tayttyneet_kriteerit += 1
+		# Kaikki annetut ehdot täyttyivät:
+		if tayttyneet_kriteerit >= self.hakukriteereita:
+			# print("MÄTSI {}".format(biisi.biisinimi))
+			return(True)
+		# print("Ei riittävästi täyttyneitä kriteereitä: {}/{}".format(tayttyneet_kriteerit, self.hakukriteereita))
+		return(False)
 
-	def etsi_tietokannasta(self, puu):
+	def etsi_tietokannasta(self, puu, uusipuu=None):
 		'''
 		Etsi annetusta tiedostopuusta kaikki biisit jotka täyttävät
-		hakukriteerit, Tiedostopuun muodossa.
+		hakukriteerit, Tiedostopuun muodossa (karsittu versio annetusta puusta)
 		'''
-		pass
+		tuloksia = False # Onko annetussa puussa käypiä hakutuloksia vai ei (rekursiota varten)
+		if self.tulospuu is None:
+			self.tulospuu = Tiedostopuu(puu.kansio)
+		for biisi in puu.biisit:
+			if self.tarkista_biisi(biisi):
+				# print("{} täyttää hakuehdot".format(biisi.biisinimi))
+				tuloksia = True
+				if uusipuu is None:
+					# Juuripuu
+					self.tulospuu.biisit.append(biisi)
+				else:
+					# Alikansio
+					uusipuu.biisit.append(biisi)
+		for alikansio in puu.alikansiot:
+			# Katso rekursiivisesti, onko alikansiossa yhtään osumaa.
+			# Jos on, lisää tulospuun alikansio-osastolle
+			if uusipuu is None:
+				alipuu = Tiedostopuu(alikansio.kansio, puu.kansio, puu.syvennystaso+1)
+			else:
+				alipuu = Tiedostopuu(alikansio.kansio, uusipuu.kansio, uusipuu.syvennystaso+1)
+			kansiossa_oli, tuloskansio = self.etsi_tietokannasta(alikansio, uusipuu=alipuu)
+			if kansiossa_oli and uusipuu is None:
+				tuloksia = True
+				self.tulospuu.alikansiot.append(tuloskansio)
+			elif kansiossa_oli:
+				tuloksia = True
+				uusipuu.alikansiot.append(tuloskansio)
+		if uusipuu is None:
+			uusipuu = self.tulospuu
+		return(tuloksia, uusipuu)
 
 if __name__ == "__main__":
 	# Testataan tietojen lukua tietokantatiedostosta
-	# for musatietokanta in kvak.LOKAALIT_TIETOKANNAT:
-	# 	f = open(musatietokanta, "r")
-	# 	puu = Tiedostopuu()
-	# 	puu.lue_tiedostosta(f)
-	# 	f.close()
+	for musatietokanta in kvak.LOKAALIT_TIETOKANNAT:
+		f = open(musatietokanta, "r")
+		puu = Tiedostopuu()
+		puu.lue_tiedostosta(f)
+		f.close()
 	# 	o = open(musatietokanta.replace(".tietokanta", "_kopioitu.tietokanta"), "w+")
 	# 	o.write(str(puu))
 	# 	o.close()
+
 	# Testaa tietojen lukua kovalevyltä
-	t1 = time.time()
-	for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
-		puu = Tiedostopuu(lokaali_musakansio)
-		puu.kansoita()
-		tietokantatiedosto = kvak.LOKAALIT_TIETOKANNAT[i]
-		f = open(tietokantatiedosto, "w+")
-		f.write(str(puu))
-		f.close()
-	t2 = time.time()
-	print("Aikaa kului {:.2f} s".format(t2-t1))
+	# t1 = time.time()
+	# for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
+	# 	puu = Tiedostopuu(lokaali_musakansio)
+	# 	puu.kansoita()
+	# 	tietokantatiedosto = kvak.LOKAALIT_TIETOKANNAT[i]
+	# 	f = open(tietokantatiedosto, "w+")
+	# 	f.write(str(puu))
+	# 	f.close()
+	# t2 = time.time()
+	# print("Aikaa kului {:.2f} s".format(t2-t1))
+
+	# Testaa hakukriteereiden käyttöä:
+	hakudikti = {
+				"ehtona_ja":     False,
+				"artistissa":    ["妖精", "亭刻"],
+				"biisissa":      ["ノゾム"],
+				# "biisissa":      ["nakamura"],
+				# "albumissa":     ["神"],
+				# "tiedostossa":   ["derp"],
+				# "raitanumero":   (1,3)
+				}
+	haku = Hakukriteerit(hakudikti)
+	oli_tuloksia, tulokset = haku.etsi_tietokannasta(puu)
+	print(f"Tuloksia: {oli_tuloksia}")
+	f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
+	f.write(str(tulokset))
+	f.close()
