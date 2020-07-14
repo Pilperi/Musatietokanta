@@ -16,6 +16,8 @@ from mutagen.flac import FLAC
 import vakiot_kansiovakiot as kvak
 import funktiot_kansiofunktiot as kfun
 
+TULOSTA = True
+
 class Tiedostopuu():
 	'''
 	Tiedostopuun luokka.
@@ -27,7 +29,8 @@ class Tiedostopuu():
 	kirjoitettua tiedostoon fiksusti ja luettua sieltä ulos.
 	'''
 	def __init__(self, kansio=None, edellinenkansio=None, syvennystaso=0):
-		# print(kansio)
+		if TULOSTA:
+			print(kansio)
 		self.edellinentaso  = edellinenkansio	# edellinen kansio (Tiedostopuu tai None)
 		self.syvennystaso	= syvennystaso		# int, monesko kerros menossa
 		self.kansio			= kansio 			# str, pelkkä kansionimi jollei ylin kansio
@@ -39,13 +42,16 @@ class Tiedostopuu():
 		Lado kansion biisit biisilistaan ja
 		alikansiot alikansiolistaan.
 		'''
+		nykyinen_polku = self.hae_nykyinen_polku()
 		biisit, alikansiot = kfun.kansion_sisalto(self.hae_nykyinen_polku(), kvak.MUSATIEDOSTOT)
 		# Biisit biisilistaan
 		for biisi in biisit:
 			self.biisit.append(Biisi(os.path.join(self.hae_nykyinen_polku(), biisi)))
 		# Alikansiot yhtä tasoa syvemmällä, ole näiden 'edellinenkansio'
 		for kansio in alikansiot:
-			self.alikansiot.append(Tiedostopuu(kansio, self, self.syvennystaso+1).kansoita())
+			puu = Tiedostopuu(kansio, self, self.syvennystaso+1)
+			puu.kansoita()
+			self.alikansiot.append(puu)
 
 	def lue_tiedostosta(self, tiedosto):
 		'''
@@ -117,8 +123,10 @@ class Tiedostopuu():
 		'''
 		st = "{:s}\"{:s}\"\n".format(" "*self.syvennystaso, self.kansio)
 		for biisi in self.biisit:
+			# print(biisi.biisinimi)
 			st += "{:s}{:s}\n".format(" "*(self.syvennystaso+1), str(biisi))
 		for kansio in self.alikansiot:
+			# print(type(kansio))
 			st += str(kansio)
 		return(st)
 
@@ -308,27 +316,74 @@ class Hakukriteerit:
 	erillisessä funktiossa tmv. (?)
 	'''
 	def __init__(self, dikti={}):
-		self.biisinimessa    = dikti.get("biisissa") # lista stringejä
-		self.albuminimessa   = dikti.get("albumissa")
-		self.tiedostonimessa = dikti.get("tiedostossa")
+		self.ehtona_ja       = dikti.get("ehtona_ja")   # onko str-haut ja- vai tai-rakenteisia
+		self.artistinimessa  = dikti.get("artistissa")  # lista stringejä
+		self.biisinimessa    = dikti.get("biisissa")    # lista stringejä
+		self.albuminimessa   = dikti.get("albumissa")   # lista stringejä
+		self.tiedostonimessa = dikti.get("tiedostossa") # lista stringejä
 		self.raitanumero     = dikti.get("raitanumero") # tuple inttejä
 
 	def tarkista(self, biisi):
 		'''
 		Tarkista biisistä, täyttääkö se annetut hakuehdot.
+		Jos jokin annetuista hakuehdoista ei täsmää, palauta False.
+		Jos mikään ei palauta Falsea, ehdot täyttyvät.
+		'''
+		# Artistin nimellä haku
+		if self.artistinimessa is not None and type(biisi.esittaja) is str:
+			if self.ehtona_ja:
+				if not(all([a in biisi.esittaja for a in self.artistinimessa])):
+					return(False)
+			else:
+				if not(any([a in biisi.esittaja for a in self.artistinimessa])):
+					return(False)
+		# Biisin nimellä haku
+		if self.biisinimessa is not None and type(biisi.biisinimi) is str:
+			if self.ehtona_ja:
+				if not(all([a in biisi.biisinimi for a in self.biisinimessa])):
+					return(False)
+			else:
+				if not(any([a in biisi.biisinimi for a in self.biisinimessa])):
+					return(False)
+		# Albumin nimellä haku
+		if self.albuminimessa is not None and type(biisi.albuminimi) is str:
+			if self.ehtona_ja:
+				if not(all([a in biisi.albuminimi for a in self.albuminimessa])):
+					return(False)
+			else:
+				if not(any([a in biisi.albuminimi for a in self.albuminimessa])):
+					return(False)
+		# Tiedoston nimellä haku
+		if self.tiedostonimessa is not None and type(biisi.tiedostonimi) is str:
+			if self.ehtona_ja:
+				if not(all([a in biisi.tiedostonimi for a in self.tiedostonimessa])):
+					return(False)
+			else:
+				if not(any([a in biisi.tiedostonimi for a in self.tiedostonimessa])):
+					return(False)
+		# Raitanumeron perusteella haku
+		if self.raitanumero is not None and type(biisi.raita) is int:
+			if biisi.raita not in range(self.raitanumero[0], self.raitanumero[1]+1):
+				return(False)
+		return(True)
+
+	def etsi_tietokannasta(self, puu):
+		'''
+		Etsi annetusta tiedostopuusta kaikki biisit jotka täyttävät
+		hakukriteerit, Tiedostopuun muodossa.
 		'''
 		pass
 
 if __name__ == "__main__":
 	# Testataan tietojen lukua tietokantatiedostosta
-	for musatietokanta in kvak.LOKAALIT_TIETOKANNAT:
-		f = open(musatietokanta, "r")
-		puu = Tiedostopuu()
-		puu.lue_tiedostosta(f)
-		f.close()
-		o = open(musatietokanta.replace(".tietokanta", "_kopioitu.tietokanta"), "w+")
-		o.write(str(puu))
-		o.close()
+	# for musatietokanta in kvak.LOKAALIT_TIETOKANNAT:
+	# 	f = open(musatietokanta, "r")
+	# 	puu = Tiedostopuu()
+	# 	puu.lue_tiedostosta(f)
+	# 	f.close()
+	# 	o = open(musatietokanta.replace(".tietokanta", "_kopioitu.tietokanta"), "w+")
+	# 	o.write(str(puu))
+	# 	o.close()
 	# Testaa tietojen lukua kovalevyltä
 	t1 = time.time()
 	for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
