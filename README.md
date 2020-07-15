@@ -5,7 +5,7 @@ Milloin yhteys katkeaa ja koko kansioselain menee ihan täysin juntturaan, millo
 Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatiedosto johon kirjattu missä etäkoneen biisit sijaitsevat (sikäläisessä järjestelmässä), ja scp:ttäisi ne mitä tarvitaan paikalliseen väliaikaiskansioon.
 
 	Asioita joita tarvitsee tehdä:
-		[/] Luokkien määritelmät
+		[x] Luokkien määritelmät
 			[x] Haluttujen tietojen määrittely
 			[x] Tietojen täyttö tiedostosta
 			[x] Tietokantaluokka, joka käärii biisit fiksusti
@@ -19,4 +19,3 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 		[ ] Graafinen käyttöliittymä (Qt)
 			[ ] Hakukentät (mitä kaikkea halutaan hakea)
 			[ ] Valitun biisin tietojen näyttö (kansikuva?)
-

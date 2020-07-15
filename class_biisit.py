@@ -17,8 +17,8 @@ import vakiot_kansiovakiot as kvak
 import funktiot_kansiofunktiot as kfun
 import multiprocessing
 
-# TULOSTA = True
-TULOSTA = False
+TULOSTA = True
+#TULOSTA = False
 
 class Tiedostopuu():
 	'''
@@ -34,10 +34,10 @@ class Tiedostopuu():
 		if TULOSTA:
 			print(kansio)
 		self.edellinentaso  = edellinenkansio	# edellinen kansio (Tiedostopuu tai None)
-		self.syvennystaso	= syvennystaso		# int, monesko kerros menossa
-		self.kansio			= kansio 			# str, pelkkä kansionimi jollei ylin kansio
-		self.biisit 		= [] 				# Lista biisejä
-		self.alikansiot		= [] 				# Lista Tiedostopuita
+		self.syvennystaso   = syvennystaso		# int, monesko kerros menossa
+		self.kansio         = kansio 			# str, pelkkä kansionimi jollei ylin kansio
+		self.biisit         = [] 				# Lista biisejä
+		self.alikansiot     = [] 				# Lista Tiedostopuita
 
 	def kansoita(self):
 		'''
@@ -63,9 +63,9 @@ class Tiedostopuu():
 		rivi = tiedosto.readline()
 		# Jos pääkansio, lue tietokannan pääkansion nimi
 		# ekalta riviltä ja siirry seuraavalle
-		if self.syvennystaso == 0 and rivi and rivi[0] == "\"":
+		if self.syvennystaso == 0 and rivi and rivi[1] == "\"":
 			kansionimi = ""
-			i = 1
+			i = 2
 			while rivi[i] != "\"":
 				kansionimi += rivi[i]
 				i += 1
@@ -73,26 +73,29 @@ class Tiedostopuu():
 			rivi = tiedosto.readline()
 		# print("\nKansio: {}\nEdellinen: {}\nSyvennystaso: {}".format(self.kansio, self.edellinentaso, self.syvennystaso))
 		while rivi:
-			# Laske syvennystaso
-			syvennys = 0
-			while rivi[syvennys] == " ":
-				syvennys += 1
+			# Laske syvennystaso: rivin alussa luvut ilmaisemassa
+			syvennys = ""
+			i = 0
+			while rivi[i].isnumeric():
+				syvennys += rivi[i]
+				i += 1
+			syvennys = int(syvennys)
 			# print("Asian taso: {}".format(syvennys))
 			if syvennys == self.syvennystaso+1:
 				# Tapaus biisi nykyisellä syvennystasolla: lisää biisilistaan
-				if rivi[syvennys] == "{":
+				if rivi[i] == "{":
 					# print("Tämän kansion biisi")
-					diktibiisi = json.loads(rivi[syvennys:-1])
+					diktibiisi = json.loads(rivi[i:-1])
 					self.biisit.append(Biisi(diktibiisi))
 					rivi = tiedosto.readline()
 				# Tapaus kansio: lisää Tiedostopuu alikansioihin
-				elif rivi[syvennys] == "\"":
+				elif rivi[i] == "\"":
 					# Lue kansion nimi, joka on "" välissä
-					syvennys += 1
+					i += 1
 					kansionimi = ""
-					while rivi[syvennys] != "\"":
-						kansionimi += rivi[syvennys]
-						syvennys += 1
+					while rivi[i] != "\"":
+						kansionimi += rivi[i]
+						i += 1
 					# print("Kansion {} alikansio {}".format(self.kansio, kansionimi))
 					alipuu = Tiedostopuu(kansionimi, self, self.syvennystaso+1)
 					rivi = alipuu.lue_tiedostosta(tiedosto)
@@ -125,10 +128,10 @@ class Tiedostopuu():
 		Kansiot ja biisit erottaa siitä että biisien tiedot on {} välissä
 		ja kansioiden nimet eivät ala "{" ja lopu "}" (...eihän?)
 		'''
-		st = "{:s}\"{:s}\"\n".format(" "*self.syvennystaso, self.kansio)
+		st = "{:d}\"{:s}\"\n".format(self.syvennystaso, self.kansio)
 		for biisi in self.biisit:
 			# print(biisi.biisinimi)
-			st += "{:s}{:s}\n".format(" "*(self.syvennystaso+1), str(biisi))
+			st += "{:d}{:s}\n".format((self.syvennystaso+1), str(biisi))
 		for kansio in self.alikansiot:
 			# print(type(kansio))
 			st += str(kansio)
@@ -453,42 +456,51 @@ class Hakukriteerit:
 		return(tuloksia, uusipuu)
 
 
-if __name__ == "__main__":
-	# Testataan tietojen lukua tietokantatiedostosta
-	for musatietokanta in kvak.LOKAALIT_TIETOKANNAT:
-		f = open(musatietokanta, "r")
+def kirjaa():
+	'''
+	Kirjaa musiikkitiedot tietokantatiedostoihin.
+	'''
+	t1 = time.time()
+	for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
+		puu = Tiedostopuu(lokaali_musakansio)
+		puu.kansoita()
+		tietokantatiedosto = kvak.LOKAALIT_TIETOKANNAT[i]
+		f = open(tietokantatiedosto, "w+")
+		f.write(str(puu))
+		f.close()
+	t2 = time.time()
+	print("Aikaa kului {:.2f} s".format(t2-t1))
+
+def lukutesti():
+	'''
+	Lue tietokannat tiedostoista Tiedostopuiksi
+	ja kirjaa puut toisiin tietokantoihin, jotta voidaan
+	testata onnistuuko toisiminen yks yhteen.
+	'''
+	for tiedosto in kvak.LOKAALIT_TIETOKANNAT:
 		puu = Tiedostopuu()
+		f = open(tiedosto, "r")
 		puu.lue_tiedostosta(f)
 		f.close()
-	# 	o = open(musatietokanta.replace(".tietokanta", "_kopioitu.tietokanta"), "w+")
-	# 	o.write(str(puu))
-	# 	o.close()
+		o = open(tiedosto.replace(".tietokanta", "_kopio.tietokanta"), "w+")
+		o.write(str(puu))
+		o.close()
 
-	# Testaa tietojen lukua kovalevyltä
-	# t1 = time.time()
-	# for i,lokaali_musakansio in enumerate(kvak.LOKAALIT_MUSIIKIT):
-	# 	puu = Tiedostopuu(lokaali_musakansio)
-	# 	puu.kansoita()
-	# 	tietokantatiedosto = kvak.LOKAALIT_TIETOKANNAT[i]
-	# 	f = open(tietokantatiedosto, "w+")
-	# 	f.write(str(puu))
-	# 	f.close()
-	# t2 = time.time()
-	# print("Aikaa kului {:.2f} s".format(t2-t1))
-
+if __name__ == "__main__":
+	pass
 	# Testaa hakukriteereiden käyttöä:
-	hakudikti = {
-				"ehtona_ja":     False,
-				# "artistissa":    ["妖精", "亭刻"],
-				# "biisissa":      ["ノゾム", "神"],
-				# "albumissa":     ["神"],
-				# "tiedostossa":   ["eroge"],
-				"raitanumero":   (1,3)
-				}
-	haku = Hakukriteerit(hakudikti)
-	oli_tuloksia, tulokset = haku.etsi_tietokannasta(puu)
-	print("Tuloksia: {:d}".format(haku.hakutuloksia))
+	#hakudikti = {
+	#			"ehtona_ja":     False,
+	#			# "artistissa":    ["妖精", "亭刻"],
+	#			# "biisissa":      ["ノゾム", "神"],
+	#			# "albumissa":     ["神"],
+	#			# "tiedostossa":   ["eroge"],
+	#			"raitanumero":   (1,3)
+	#			}
+	#haku = Hakukriteerit(hakudikti)
+	#oli_tuloksia, tulokset = haku.etsi_tietokannasta(puu)
+	#print("Tuloksia: {:d}".format(haku.hakutuloksia))
 	# Kirjaa tulokset tiedostoon
-	f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
-	f.write(str(tulokset))
-	f.close()
+	#f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
+	#f.write(str(tulokset))
+	#f.close()
