@@ -17,5 +17,11 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 		[ ] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
 
 		[ ] Graafinen käyttöliittymä (Qt)
-			[ ] Hakukentät (mitä kaikkea halutaan hakea)
-			[ ] Valitun biisin tietojen näyttö (kansikuva?)
+			[ ] Hakukentät (mitä kaikkea halutaan hakea, ks. Hakukriteerit)
+				[ ] Biisin nimi
+				[ ] Artistin nimi
+				[ ] Tiedostopolun osa
+				[ ] Raitanumero (tarviiko?)
+				[ ] Vapaahaku (kopsaa vaan saman stringin kaikkiin)
+				[ ] Hakusanojen ja/tai-toggle
+			[ ] Valitun biisin tietojen näyttö (ei varmaan kansikuvaa)
