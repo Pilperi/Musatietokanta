@@ -67,7 +67,7 @@ class Tiedostopuu():
 			# print("Asian taso: {}".format(syvennys))
 			if syvennys == self.syvennystaso+1:
 				# Tapaus tiedosto nykyisellä syvennystasolla: lisää tiedostolistaan
-				if type(self.tiedostotyyppi) is type and rivi[i] == "{":
+				if type(self.tiedostotyyppi) is not None and rivi[i] == "{":
 					# print("Tämän kansion tiedosto")
 					diktitiedosto = json.loads(rivi[i:-1])
 					self.tiedostot.append(self.tiedostotyyppi(diktitiedosto))
@@ -112,7 +112,7 @@ class Tiedostopuu():
 		Kansiot ja tiedostot erottaa siitä että tiedostojen tiedot on {} välissä
 		ja kansiot "" välissä
 		'''
-		st = "{:d}\"{:s}\"\n".format(self.syvennystaso, self.kansio)
+		st = "{:d}\"{:s}\"\n".format(self.syvennystaso, str(self.kansio))
 		for tiedosto in self.tiedostot:
 			st += "{:d}{:s}\n".format((self.syvennystaso+1), str(tiedosto))
 		for kansio in self.alikansiot:

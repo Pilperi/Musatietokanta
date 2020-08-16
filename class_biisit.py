@@ -389,6 +389,6 @@ if __name__ == "__main__":
 		oli_tuloksia, tulokset = haku.etsi_tietokannasta(puu)
 		print("Tuloksia: {:d}".format(haku.hakutuloksia))
 		# Kirjaa tulokset tiedostoon
-		#f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
-		#f.write(str(tulokset))
-		#f.close()
+		f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
+		f.write(str(tulokset))
+		f.close()
