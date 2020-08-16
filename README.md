@@ -12,14 +12,14 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 			[x] Kirjoitus- ja lukufunktiot
 			[x] Hakufunktiot (RAM, ei suoraan tiedostosta)
 
-		[/] Pythonin kautta pyöritettävä SCP
+		[/] Pythonin kautta pyöritettävä SCP (Erikoismerkit???)
 
 		[ ] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
 
-		[ ] Graafinen käyttöliittymä (Qt)
-			[ ] Hakukentät (mitä kaikkea halutaan hakea, ks. Hakukriteerit)
+		[/] Graafinen käyttöliittymä (Qt)
+			[/] Hakukentät (mitä kaikkea halutaan hakea, ks. Hakukriteerit)
 				[ ] Biisin nimi
-				[ ] Artistin nimi
+				[/] Artistin nimi
 				[ ] Tiedostopolun osa
 				[ ] Raitanumero (tarviiko?)
 				[ ] Vapaahaku (kopsaa vaan saman stringin kaikkiin)
