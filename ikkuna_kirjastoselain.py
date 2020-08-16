@@ -120,7 +120,8 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		edellinen.appendRow(elementti)
 		for alikansio in puu.alikansiot:
 			self.kansoita_puu(alikansio, juuri+1, elementti)
-		for biisi in puu.tiedostot:
+		sortatutbiisit = sorted(puu.tiedostot, key = lambda t: t.tiedostonimi)
+		for biisi in sortatutbiisit:
 			biisielementti = Tiedostoelementti(biisi)
 			elementti.appendRow(biisielementti)
 
