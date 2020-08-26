@@ -5,10 +5,15 @@ from class_tiedostopuu import Tiedostopuu
 from PyQt5 import Qt, QtCore, QtWidgets, QtGui
 
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
-IKKUNAMITAT = [500,700]
-PUUMITAT    = [400, 600]
-MARGINAALIT = [10,10]
-PAATASOT    = 2
+IKKUNAMITAT   = [700,700]
+MARGINAALIT   = [10,10]
+HAKUMITAT     = [MARGINAALIT[0], 205, MARGINAALIT[1], 35]
+HAKULABEL     = 20
+HAKUNAPPI     = 80
+PUUMITAT      = [MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3])]
+TAULUKKOMITAT = [PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210]
+TAULUKKOLABEL = min(150,TAULUKKOMITAT[1])
+PAATASOT      = 2
 
 
 class Kansioelementti(Qt.QStandardItem):
@@ -25,6 +30,18 @@ class Kansioelementti(Qt.QStandardItem):
 		# self.setForeground(vari)
 		self.setFont(fontti)
 		self.setText(puuteksti)
+		self.puu = puu
+
+	def __str__(self):
+		'''
+		Kuvaus kansiosta tietoikkunaan.
+		'''
+		st  = "Kansio\t{}".format(self.puu.kansio)
+		st += "\nSyvyydellä\t{}{}".format(self.puu.syvennystaso, "    (juuri)"*(self.puu.syvennystaso==0))
+		lukumaara = self.puu.sisallon_maara()
+		st += "\nBiisejä\t{}    ({} + {})".format(lukumaara[0], lukumaara[1], lukumaara[2])
+		st += "\nKansioita\t{}".format(len(self.puu.alikansiot))
+		return(st)
 
 
 class Tiedostoelementti(Qt.QStandardItem):
@@ -33,20 +50,51 @@ class Tiedostoelementti(Qt.QStandardItem):
 		fontti = QtGui.QFont("Open Sans", fonttikoko)
 		fontti.setBold(boldattu)
 
-		if False:
 		# if type(tiedosto) is cb.Biisi and tiedosto.biisinimi is not None:
-			puuteksti = tiedosto.biisinimi
-			if type(tiedosto.raita) is int:
-				puuteksti = "{:02d}. {:s}".format(tiedosto.raita, puuteksti)
-		else:
-			puuteksti = str(tiedosto.tiedostonimi)
-		# print(puuteksti)
+		# 	puuteksti = tiedosto.biisinimi
+		# 	if type(tiedosto.raita) is int:
+		# 		puuteksti = "{:02d}. {:s}".format(tiedosto.raita, puuteksti)
+		# else:
+		# 	puuteksti = str(tiedosto.tiedostonimi)
+		puuteksti = str(tiedosto.tiedostonimi)
 
 		self.setEditable(False)
 		self.setForeground(QtGui.QColor(*vari))
 		# self.setForeground(vari)
 		self.setFont(fontti)
 		self.setText(puuteksti)
+		self.tiedosto = tiedosto
+
+	def __str__(self):
+		'''
+		Näytä biisin tiedot.
+		'''
+		st = ""
+		st += "{} - {}\n\n\n".format(self.tiedosto.esittaja, self.tiedosto.biisinimi)
+		st += "Esittäjä:"
+		if self.tiedosto.esittaja:
+			st += "\t{}".format(self.tiedosto.esittaja)
+		st += "\nKappale:"
+		if self.tiedosto.biisinimi:
+			st += "\t{}".format(self.tiedosto.biisinimi)
+		st += "\nAlbumi:"
+		if self.tiedosto.albuminimi:
+			st += "\t{}".format(self.tiedosto.albuminimi)
+		st += "\nVuosi:"
+		if self.tiedosto.vuosi:
+			st += "\t{}".format(self.tiedosto.vuosi)
+		st += "\nRaita:"
+		if self.tiedosto.vuosi:
+			st += "\t{}{}".format(self.tiedosto.raita, f"/{self.tiedosto.raitoja}"*(self.tiedosto.raitoja not in [0,None]))
+		st += "\nAlb.es.:"
+		if self.tiedosto.albumiesittaja:
+			st += "\t{}".format(self.tiedosto.albumiesittaja)
+		st += "\nLisätty:"
+		if self.tiedosto.lisayspaiva:
+			pilkottu = self.tiedosto.paivays(self.tiedosto.lisayspaiva)[1]
+			st += "\t{}-{}-{} / {}:{}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
+
+		return(st)
 
 
 class Selausikkuna(QtWidgets.QMainWindow):
@@ -54,29 +102,29 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		super().__init__()
 		self.setWindowTitle("Musiikkikirjastoselain")
 		self.resize(IKKUNAMITAT[0], IKKUNAMITAT[1])
-		self.setMinimumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
-		self.setMaximumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
-
-		# Tekstikenttä
-		self.nimihaku = QtWidgets.QLineEdit(self)
-		self.nimihaku.setGeometry(QtCore.QRect(10, 35, 205, 35))
-		self.nimihaku.setObjectName("nimihaku")
-		self.nimihaku.setClearButtonEnabled(True)
-		self.nimihaku.setText("Artistin nimi")
-		self.nimihaku.selectAll()
-		self.nimihaku.setCompleter(None)
+		# self.setMinimumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
+		# self.setMaximumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
 
 		# Tekstikentän otsikkoteksti
 		self.label_nimihaku = QtWidgets.QLabel(self)
-		self.label_nimihaku.setGeometry(QtCore.QRect(10, 10, 205, 35))
+		self.label_nimihaku.setGeometry(QtCore.QRect(HAKUMITAT[0], HAKUMITAT[2], HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[3]))
 		# self.label_nimihaku.setFrameShape(QtWidgets.QFrame.Box)
 		self.label_nimihaku.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
 		self.label_nimihaku.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
-		self.label_nimihaku.setText("Artistin nimi")
+		self.label_nimihaku.setText("Vapaahaku")
+
+		# Tekstikenttä
+		self.nimihaku = QtWidgets.QLineEdit(self)
+		self.nimihaku.setGeometry(QtCore.QRect(HAKUMITAT[0], HAKUMITAT[2]+HAKULABEL, HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[3]))
+		self.nimihaku.setObjectName("nimihaku")
+		self.nimihaku.setClearButtonEnabled(True)
+		self.nimihaku.setText("Vapaahaku")
+		self.nimihaku.selectAll()
+		self.nimihaku.setCompleter(None)
 
 		# Hakunappi
 		self.etsi = QtWidgets.QPushButton(self)
-		self.etsi.setGeometry(QtCore.QRect(205, 35, 100, 35))
+		self.etsi.setGeometry(QtCore.QRect(HAKUMITAT[0]+HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[2]+HAKULABEL, HAKUNAPPI, HAKUMITAT[3]))
 		self.etsi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
 		self.etsi.setFocusPolicy(QtCore.Qt.NoFocus)
 		self.etsi.setText("Etsi")
@@ -86,7 +134,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.etsi.clicked.connect(self.hae)
 
 		self.puu = QtWidgets.QTreeView(self)
-		self.puu.setGeometry(QtCore.QRect(MARGINAALIT[0], IKKUNAMITAT[1]-MARGINAALIT[1]-PUUMITAT[1], PUUMITAT[0], PUUMITAT[1]))
+		self.puu.setGeometry(QtCore.QRect(PUUMITAT[0], PUUMITAT[2], PUUMITAT[1], PUUMITAT[3]))
 		self.puu.setHeaderHidden(True)
 
 		self.puumalli = Qt.QStandardItemModel()
@@ -100,6 +148,15 @@ class Selausikkuna(QtWidgets.QMainWindow):
 
 		self.puu.setModel(self.puumalli)
 		self.puu.expand(self.puumalli.index(0,0))
+		self.puu.selectionModel().selectionChanged.connect(self.nayta_tiedot)
+
+		# self.taulukko = QtWidgets.QLineEdit(self)
+		self.taulukko = QtWidgets.QTextEdit(self)
+		self.taulukko.setGeometry(QtCore.QRect(TAULUKKOMITAT[0], TAULUKKOMITAT[2], TAULUKKOMITAT[1], TAULUKKOMITAT[3]))
+		self.taulukko.setText("")
+		self.taulukko.setReadOnly(True)
+		self.taulukko.setAlignment(QtCore.Qt.AlignTop)
+		self.taulukko.setWordWrapMode(0)
 
 	def kansoita_puu(self, puu, juuri=0, edellinen=None):
 		'''
@@ -127,7 +184,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 
 	def hae(self):
 		'''
-		Suorita haku.子
+		Suorita haku.
 		'''
 		hakudikti = {}
 		oli_tuloksia = False
@@ -137,14 +194,16 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			artistinnimessa = self.nimihaku.text().split(" ")
 		print(f"artisti: {artistinnimessa}")
 		hakudikti = {
+					"vapaahaku":     artistinnimessa,
 					"ehtona_ja":     False,
 					"artistissa":    artistinnimessa,
-					# "biisissa":      ["ノゾム", "神"],
-					# "albumissa":     ["神"],
-					# "tiedostossa":   ["eroge"],
+					"biisissa":      artistinnimessa,
+					"albumissa":     artistinnimessa,
+					"tiedostossa":   artistinnimessa
 					# "raitanumero":   (1,3)
 					}
 		haettavaa = any([hakudikti[a] is not None for a in hakudikti])
+		self.puu.setCurrentIndex(self.puu.rootIndex())
 		if haettavaa:
 			haku = cb.Hakukriteerit(hakudikti)
 			oli_tuloksia, tulokset = haku.etsi_tietokannasta(self.tiedostopuu)
@@ -159,6 +218,16 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			self.kansoita_puu(self.tiedostopuu)
 			self.puu.setModel(self.puumalli)
 			self.puu.expand(self.puumalli.index(0,0))
+
+	def nayta_tiedot(self):
+		'''
+		Näytä valitun biisin tai kansion tiedot.
+		'''
+		st = ""
+		if type(self.puumalli.itemFromIndex(self.puu.currentIndex())) in [Kansioelementti, Tiedostoelementti]:
+			st = str(self.puumalli.itemFromIndex(self.puu.currentIndex()))
+			print(st)
+		self.taulukko.setText(st)
 
 
 if __name__ == "__main__":

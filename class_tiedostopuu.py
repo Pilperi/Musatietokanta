@@ -106,6 +106,17 @@ class Tiedostopuu():
 			polkustringi += osa+"/"
 		return(polkustringi)
 
+	def sisallon_maara(self):
+		'''
+		Laske paljonko puussa ja alipuissa on tavaraa,
+		sekä eroteltuna että ynnättynä.
+		'''
+		itsessa   = len(self.tiedostot)
+		alipuissa = 0
+		for alipuu in self.alikansiot:
+			alipuissa += alipuu.sisallon_maara()[0]
+		return((itsessa+alipuissa, itsessa, alipuissa))
+
 	def __str__(self):
 		'''
 		Rekursiivinen str-operaatio, käydään kaikki alikansiotkin läpi.

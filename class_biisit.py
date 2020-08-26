@@ -150,23 +150,37 @@ class Biisi():
 		kokoversio	= 0
 		vuosi		= 0
 		kuukausi	= 0
-		paivays		= 0
+		paiva		= 0
+		tunnit      = 0
+		minuutit    = 0
 		# Pilko annettu päiväys
 		if type(lue) in [int, str]:
 			stringiversio = str(lue)
-			if len(stringiversio) == 8 and all([a.isnumeric for a in stringiversio]):
-				kokoversio	= int(stringiversio)
-				vuosi		= int(stringiversio[:4])
-				kuukausi	= int(stringiversio[4:6])
-				paivays		= int(stringiversio[6:8])
+			if len(stringiversio) == 12 and all([a.isnumeric for a in stringiversio]):
+				kokoversio  = int(stringiversio)
+				vuosi       = int(stringiversio[:4])
+				kuukausi    = int(stringiversio[4:6])
+				paiva       = int(stringiversio[6:8])
+				tunnit      = int(stringiversio[8:10])
+				minuutit    = int(stringiversio[10:12])
+			# Vanha versio ilman tunteja ja minuutteja
+			elif len(stringiversio) == 8 and all([a.isnumeric for a in stringiversio]):
+				kokoversio  = int(stringiversio)*10000
+				vuosi       = int(stringiversio[:4])
+				kuukausi    = int(stringiversio[4:6])
+				paiva       = int(stringiversio[6:8])
+				tunnit      = 0
+				minuutit    = 0
 		# Nykyhetken päiväys
 		else:
 			paivays  = time.localtime()
 			vuosi    = paivays.tm_year
 			kuukausi = paivays.tm_mon
-			paivays  = paivays.tm_mday
-			kokoversio = int("{:04d}{:02d}{:02d}".format(vuosi,kuukausi,paivays))
-		return((kokoversio, (vuosi, kuukausi, paivays)))
+			paiva    = paivays.tm_mday
+			tunnit   = paivays.tm_hour
+			minuutit = paivays.tm_min
+			kokoversio = int("{:04d}{:02d}{:02d}{:02d}{:02d}".format(vuosi,kuukausi,paiva,tunnit,minuutit))
+		return((kokoversio, (vuosi, kuukausi, paiva, tunnit, minuutit)))
 
 	def lue_diktista(self, dikti):
 		'''
@@ -196,6 +210,15 @@ class Biisi():
 					}
 		return(json.dumps(diktiversio))
 
+	def __bool__(self):
+		'''
+		Jos tiedoston jokin perustiedoista
+		(ihan tosi perustiedoista) ei ole
+		määritelty, biisiä ei ole kunnolla määritelty.
+		'''
+		if None in [self.tiedostonimi, self.lisayspaiva]:
+			return(False)
+		return(True)
 
 class Hakukriteerit:
 	'''
@@ -211,6 +234,7 @@ class Hakukriteerit:
 		self.albuminimessa   = dikti.get("albumissa")   # lista stringejä
 		self.tiedostonimessa = dikti.get("tiedostossa") # lista stringejä
 		self.raitanumero     = dikti.get("raitanumero") # tuple inttejä
+		self.vapaahaku       = dikti.get("vapaahaku")   # vapaakenttähaku
 
 		self.hakukriteereita = len(dikti.keys())-1
 		self.tulospuu        = None                     # Tiedostopuu hakutuloksille
@@ -222,6 +246,18 @@ class Hakukriteerit:
 		Jos jokin annetuista hakuehdoista ei täsmää, palauta False.
 		Jos mikään ei palauta Falsea, ehdot täyttyvät.
 		'''
+		# Vapaakenttähaku menee eri reittiä
+		if type(self.vapaahaku) is list and all(type(a) is str for a in self.vapaahaku):
+			if any([a in str(biisi.esittaja).lower() for a in self.vapaahaku]):
+				return(True)
+			if any([a in str(biisi.biisinimi).lower() for a in self.vapaahaku]):
+				return(True)
+			if any([a in str(biisi.albuminimi).lower() for a in self.vapaahaku]):
+				return(True)
+			if any([a in str(biisi.tiedostonimi).lower() for a in self.vapaahaku]):
+				return(True)
+			return(False)
+
 		tayttyneet_kriteerit = 0
 		# Artistin nimellä haku
 		if self.artistinimessa is not None and type(biisi.esittaja) is str:
@@ -389,6 +425,6 @@ if __name__ == "__main__":
 		oli_tuloksia, tulokset = haku.etsi_tietokannasta(puu)
 		print("Tuloksia: {:d}".format(haku.hakutuloksia))
 		# Kirjaa tulokset tiedostoon
-		f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
-		f.write(str(tulokset))
-		f.close()
+		#f = open(kvak.LOKAALIT_TIETOKANNAT[0].replace(".tietokanta", "_hakutulokset.tietokanta"), "w+")
+		#f.write(str(tulokset))
+		#f.close()
