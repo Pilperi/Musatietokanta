@@ -5,6 +5,8 @@ from class_tiedostopuu import Tiedostopuu
 from PyQt5 import Qt, QtCore, QtWidgets, QtGui
 
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
+
+# Ikkunan asioiden mitat
 IKKUNAMITAT   = [700,700]
 MARGINAALIT   = [10,10]
 HAKUMITAT     = [MARGINAALIT[0], 205, MARGINAALIT[1], 35]
@@ -12,7 +14,9 @@ HAKULABEL     = 20
 HAKUNAPPI     = 80
 PUUMITAT      = [MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3])]
 TAULUKKOMITAT = [PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210]
-TAULUKKOLABEL = min(150,TAULUKKOMITAT[1])
+LATAUSNAPPI   = [TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50]
+
+# Puun muotoiluparametrit
 PAATASOT      = 2
 
 
@@ -23,14 +27,14 @@ class Kansioelementti(Qt.QStandardItem):
 		fontti.setBold(boldattu)
 
 		puuteksti = str(puu.kansio)
-		# print(puuteksti)
 
 		self.setEditable(False)
 		self.setForeground(QtGui.QColor(*vari))
-		# self.setForeground(vari)
 		self.setFont(fontti)
 		self.setText(puuteksti)
 		self.puu = puu
+
+		self.tiedostopolku = self.puu.hae_nykyinen_polku # funktiopointteri
 
 	def __str__(self):
 		'''
@@ -65,6 +69,19 @@ class Tiedostoelementti(Qt.QStandardItem):
 		self.setText(puuteksti)
 		self.tiedosto = tiedosto
 
+	def tiedostopolku(self):
+		'''
+		Antaa tiedoston polun.
+		Vanhempana aina jokin kansio, 
+		haetaan siitä kansiopolku ja tiedostosta tiedostonimi.
+		'''
+		vanhempi = self.parent()
+		if vanhempi is not None:
+			kansiopolku  = vanhempi.puu.hae_nykyinen_polku()
+			tiedostonimi = self.tiedosto.tiedostonimi
+			return(os.path.join(kansiopolku, tiedostonimi))
+		return(None)
+
 	def __str__(self):
 		'''
 		Näytä biisin tiedot.
@@ -92,9 +109,29 @@ class Tiedostoelementti(Qt.QStandardItem):
 		st += "\nLisätty:"
 		if self.tiedosto.lisayspaiva:
 			pilkottu = self.tiedosto.paivays(self.tiedosto.lisayspaiva)[1]
-			st += "\t{}-{}-{} / {}:{}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
+			st += "\t{:04d}-{:02d}-{:02d} / {:02d}:{:02d}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
 
 		return(st)
+
+
+class Vaara_monta(QtWidgets.QMessageBox):
+	'''
+	Danger zone varoitusikkuna,
+	ei klikata 10k biisin kansissa vahingossa "lataa"
+	ja sit jouduta tappamaan ohjelmaa väkisin kun menis ikuisuus.
+	'''
+	def __init__(self, biiseja):
+		super().__init__()
+		self.width  = 500
+		self.height = 500
+		self.setWindowTitle('Näit biisejä on aika monta')
+		self.setText(f'Olet lataamassa {biiseja} biisiä, haluutko oikeesti?')
+		self.setStandardButtons(QtWidgets.QMessageBox.Yes|QtWidgets.QMessageBox.No)
+		self.juu = self.button(QtWidgets.QMessageBox.Yes)
+		self.juu.setText('Kyllä')
+		self.eikyl = self.button(QtWidgets.QMessageBox.No)
+		self.eikyl.setText('Emmää joo')
+		self.exec_()
 
 
 class Selausikkuna(QtWidgets.QMainWindow):
@@ -102,8 +139,8 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		super().__init__()
 		self.setWindowTitle("Musiikkikirjastoselain")
 		self.resize(IKKUNAMITAT[0], IKKUNAMITAT[1])
-		# self.setMinimumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
-		# self.setMaximumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
+		self.setMinimumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
+		self.setMaximumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
 
 		# Tekstikentän otsikkoteksti
 		self.label_nimihaku = QtWidgets.QLabel(self)
@@ -157,6 +194,17 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.taulukko.setReadOnly(True)
 		self.taulukko.setAlignment(QtCore.Qt.AlignTop)
 		self.taulukko.setWordWrapMode(0)
+
+		# Latausnappi
+		self.latausnappi = QtWidgets.QPushButton(self)
+		self.latausnappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
+		self.latausnappi.setGeometry(QtCore.QRect(LATAUSNAPPI[0], LATAUSNAPPI[2], LATAUSNAPPI[1], LATAUSNAPPI[3]))
+		self.latausnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+		self.latausnappi.setFocusPolicy(QtCore.Qt.NoFocus)
+		self.latausnappi.setText("Lataa")
+		# self.latausnappi.setShortcut("Return")     # normi
+		# self.latausnappi.setShortcut("Enter")    # kp
+		self.latausnappi.clicked.connect(self.lataa)
 
 	def kansoita_puu(self, puu, juuri=0, edellinen=None):
 		'''
@@ -218,6 +266,21 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			self.kansoita_puu(self.tiedostopuu)
 			self.puu.setModel(self.puumalli)
 			self.puu.expand(self.puumalli.index(0,0))
+
+	def lataa(self):
+		'''
+		Lataa valittu asia.
+		'''
+		asia = self.puumalli.itemFromIndex(self.puu.currentIndex())
+		if type(asia) in [Tiedostoelementti, Kansioelementti]:
+			print(asia.tiedostopolku())
+			if type(asia) is Kansioelementti:
+				biiseja = asia.puu.sisallon_maara()
+				vaaraikkuna = Vaara_monta(biiseja[0])
+				if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
+					print("I love danger zone")
+				else:
+					print("Pelottaa")
 
 	def nayta_tiedot(self):
 		'''

@@ -19,9 +19,9 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 		[/] Graafinen käyttöliittymä (Qt)
 			[/] Hakukentät (mitä kaikkea halutaan hakea, ks. Hakukriteerit)
 				[ ] Biisin nimi
-				[/] Artistin nimi
+				[ ] Artistin nimi
 				[ ] Tiedostopolun osa
 				[ ] Raitanumero (tarviiko?)
-				[ ] Vapaahaku (kopsaa vaan saman stringin kaikkiin)
+				[x] Vapaahaku (kopsaa vaan saman stringin kaikkiin)
 				[ ] Hakusanojen ja/tai-toggle
-			[ ] Valitun biisin tietojen näyttö (ei varmaan kansikuvaa)
+			[x] Valitun biisin tietojen näyttö (ei varmaan kansikuvaa)

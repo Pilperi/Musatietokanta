@@ -102,8 +102,11 @@ class Tiedostopuu():
 			ylempitaso = ylempitaso.edellinentaso
 		polku.reverse()
 		polkustringi = ""
-		for osa in polku:
-			polkustringi += osa+"/"
+		if polku:
+			polkustringi = polku[0]
+		if len(polku) > 1:
+			for osa in polku[1:]:
+				polkustringi += osa+"/"
 		return(polkustringi)
 
 	def sisallon_maara(self):
