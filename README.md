@@ -12,7 +12,7 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 			[x] Kirjoitus- ja lukufunktiot
 			[x] Hakufunktiot (RAM, ei suoraan tiedostosta)
 
-		[/] Pythonin kautta pyöritettävä SCP (Erikoismerkit???)
+		[x] Pythonin kautta pyöritettävä SCP (Erikoismerkit???)
 
 		[ ] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
 

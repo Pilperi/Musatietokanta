@@ -1,6 +1,8 @@
 import os
 import sys
 import class_biisit as cb
+import funktiot_kansiofunktiot as kfun
+import vakiot_kansiovakiot as kvak
 from class_tiedostopuu import Tiedostopuu
 from PyQt5 import Qt, QtCore, QtWidgets, QtGui
 
@@ -15,10 +17,9 @@ HAKUNAPPI     = 80
 PUUMITAT      = [MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3])]
 TAULUKKOMITAT = [PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210]
 LATAUSNAPPI   = [TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50]
-
+TIETOKANTAVALITSIN = [HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 205, HAKUMITAT[3]]
 # Puun muotoiluparametrit
 PAATASOT      = 2
-
 
 class Kansioelementti(Qt.QStandardItem):
 	def __init__(self, puu, fonttikoko=12, boldattu=False, vari=(255,255,255)):
@@ -137,6 +138,35 @@ class Vaara_monta(QtWidgets.QMessageBox):
 class Selausikkuna(QtWidgets.QMainWindow):
 	def __init__(self):
 		super().__init__()
+		self.initflag = True
+		# Lataa tietokannat
+		self.tietokantatiedostot = []
+		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
+			koodi = kfun.lataa(vaintiedosto=True,\
+							   lahdepalvelin=kvak.ETAPALVELIN,\
+							   lahdepolku=tietokanta,\
+							   kohdepalvelin=None,\
+							   kohdepolku=os.path.basename(tietokanta))
+			if koodi:
+				self.tietokantatiedostot.append(os.path.basename(tietokanta))
+
+		# Määritä puu
+		self.puu = QtWidgets.QTreeView(self)
+		self.puu.setGeometry(QtCore.QRect(PUUMITAT[0], PUUMITAT[2], PUUMITAT[1], PUUMITAT[3]))
+		self.puu.setHeaderHidden(True)
+		self.puumalli = Qt.QStandardItemModel()
+		self.juurisolmu = self.puumalli.invisibleRootItem()
+		self.puu.setModel(self.puumalli)
+		self.puu.expand(self.puumalli.index(0,0))
+		# Tietoja inee
+		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
+		if len(self.tietokantatiedostot):
+			tietokanta = open(self.tietokantatiedostot[0], "r")
+			self.tiedostopuu.lue_tiedostosta(tietokanta)
+			tietokanta.close()
+			self.kansoita_puu(self.tiedostopuu)
+		self.puu.selectionModel().selectionChanged.connect(self.nayta_tiedot)
+
 		self.setWindowTitle("Musiikkikirjastoselain")
 		self.resize(IKKUNAMITAT[0], IKKUNAMITAT[1])
 		self.setMinimumSize(IKKUNAMITAT[0], IKKUNAMITAT[1])
@@ -170,23 +200,6 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# self.Etsi.setObjectName("pushButton")
 		self.etsi.clicked.connect(self.hae)
 
-		self.puu = QtWidgets.QTreeView(self)
-		self.puu.setGeometry(QtCore.QRect(PUUMITAT[0], PUUMITAT[2], PUUMITAT[1], PUUMITAT[3]))
-		self.puu.setHeaderHidden(True)
-
-		self.puumalli = Qt.QStandardItemModel()
-		self.juurisolmu = self.puumalli.invisibleRootItem()
-
-		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
-		tietokanta = open("musiikit.tietokanta", "r")
-		self.tiedostopuu.lue_tiedostosta(tietokanta)
-		tietokanta.close()
-		self.kansoita_puu(self.tiedostopuu)
-
-		self.puu.setModel(self.puumalli)
-		self.puu.expand(self.puumalli.index(0,0))
-		self.puu.selectionModel().selectionChanged.connect(self.nayta_tiedot)
-
 		# self.taulukko = QtWidgets.QLineEdit(self)
 		self.taulukko = QtWidgets.QTextEdit(self)
 		self.taulukko.setGeometry(QtCore.QRect(TAULUKKOMITAT[0], TAULUKKOMITAT[2], TAULUKKOMITAT[1], TAULUKKOMITAT[3]))
@@ -194,6 +207,12 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.taulukko.setReadOnly(True)
 		self.taulukko.setAlignment(QtCore.Qt.AlignTop)
 		self.taulukko.setWordWrapMode(0)
+
+		# Tietokantavalitsin
+		self.tietokantavalitsin = QtWidgets.QComboBox(self)
+		self.tietokantavalitsin.setGeometry(QtCore.QRect(*TIETOKANTAVALITSIN))
+		self.tietokantavalitsin.addItems(self.tietokantatiedostot)
+		self.tietokantavalitsin.currentIndexChanged.connect(self.vaihda_tietokantaa)
 
 		# Latausnappi
 		self.latausnappi = QtWidgets.QPushButton(self)
@@ -205,6 +224,8 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# self.latausnappi.setShortcut("Return")     # normi
 		# self.latausnappi.setShortcut("Enter")    # kp
 		self.latausnappi.clicked.connect(self.lataa)
+
+		self.initflag = False
 
 	def kansoita_puu(self, puu, juuri=0, edellinen=None):
 		'''
@@ -279,8 +300,19 @@ class Selausikkuna(QtWidgets.QMainWindow):
 				vaaraikkuna = Vaara_monta(biiseja[0])
 				if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
 					print("I love danger zone")
+					koodi = kfun.lataa(vaintiedosto=False,\
+									   lahdepalvelin=kvak.ETAPALVELIN,
+									   lahdepolku=asia.tiedostopolku(),
+									   kohdepalvelin=None,
+									   kohdepolku=os.path.join(kvak.BIISIKANSIO, asia.puu.kansio))
 				else:
 					print("Pelottaa")
+			else:
+				koodi = kfun.lataa(vaintiedosto=True,\
+								   lahdepalvelin=kvak.ETAPALVELIN,
+								   lahdepolku=asia.tiedostopolku(),
+								   kohdepalvelin=None,
+								   kohdepolku=os.path.join(kvak.BIISIKANSIO, asia.tiedosto.tiedostonimi))
 
 	def nayta_tiedot(self):
 		'''
@@ -291,6 +323,19 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			st = str(self.puumalli.itemFromIndex(self.puu.currentIndex()))
 			print(st)
 		self.taulukko.setText(st)
+
+	def vaihda_tietokantaa(self):
+		'''
+		Vaihda mitä tietokantaa käytetään pohjana.
+		'''
+		tietokantatiedosto = self.tietokantavalitsin.currentText()
+		if not self.initflag:
+			self.juurisolmu.removeRow(0)
+		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
+		tietokanta = open(tietokantatiedosto, "r")
+		self.tiedostopuu.lue_tiedostosta(tietokanta)
+		tietokanta.close()
+		self.kansoita_puu(self.tiedostopuu)
 
 
 if __name__ == "__main__":

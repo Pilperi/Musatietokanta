@@ -46,6 +46,7 @@ class Biisi():
 		self.raita			= None
 		self.raitoja		= None
 		self.lisayspaiva	= None
+		self.hash           = None
 
 		# Lukukohteena tiedostopolku (str)
 		if type(kohteesta) is str:
@@ -64,6 +65,7 @@ class Biisi():
 		'''
 		paate = kfun.paate(tiedostopolku)[1].lower()
 		if paate in kvak.MUSATIEDOSTOT:
+			self.hash = kfun.hanki_hash(tiedostopolku)
 			if paate == "mp3":
 				tagit = EasyID3(tiedostopolku)
 				# print(tagit)
@@ -186,27 +188,29 @@ class Biisi():
 		'''
 		Koetetaan lukea diktistä metadatat.
 		'''
-		self.tiedostonimi	= dikti.get("tiedostonimi")
-		self.albuminimi		= dikti.get("albuminimi")
+		self.tiedostonimi   = dikti.get("tiedostonimi")
+		self.albuminimi     = dikti.get("albuminimi")
 		self.albumiesittaja = dikti.get("albumiesittaja")
-		self.esittaja		= dikti.get("esittaja")
-		self.biisinimi		= dikti.get("biisinimi")
-		self.vuosi			= dikti.get("vuosi")
-		self.raita			= dikti.get("raita")
-		self.raitoja		= dikti.get("raitoja")
-		self.lisayspaiva	= dikti.get("lisayspaiva")
+		self.esittaja       = dikti.get("esittaja")
+		self.biisinimi      = dikti.get("biisinimi")
+		self.vuosi          = dikti.get("vuosi")
+		self.raita          = dikti.get("raita")
+		self.raitoja        = dikti.get("raitoja")
+		self.lisayspaiva    = dikti.get("lisayspaiva")
+		self.hash           = dikti.get("hash")
 
 	def __str__(self):
 		diktiversio = {
-					"tiedostonimi":		self.tiedostonimi,
-					"esittaja":			self.esittaja,
-					"biisinimi":		self.biisinimi,
-					"albuminimi":		self.albuminimi,
-					"raita":			self.raita,
-					"raitoja":			self.raitoja,
-					"vuosi":			self.vuosi,
-					"albumiesittaja":	self.albumiesittaja,
-					"lisayspaiva":		self.lisayspaiva
+					"tiedostonimi":     self.tiedostonimi,
+					"esittaja":         self.esittaja,
+					"biisinimi":        self.biisinimi,
+					"albuminimi":       self.albuminimi,
+					"raita":            self.raita,
+					"raitoja":          self.raitoja,
+					"vuosi":            self.vuosi,
+					"albumiesittaja":   self.albumiesittaja,
+					"lisayspaiva":      self.lisayspaiva,
+					"hash":	            self.hash
 					}
 		return(json.dumps(diktiversio))
 
