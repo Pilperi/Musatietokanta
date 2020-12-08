@@ -33,7 +33,7 @@ class Tiedostopuu():
 		# Tiedostot tiedostolistaan (tässä vaihtelee, minkä tyyppinen tiedosto kyseessä)
 		if type(self.tiedostotyyppi) is type:
 			for tiedosto in tiedostot:
-				print("{}{}".format((self.syvennystaso)*" ", tiedosto))
+				print("{}{}".format((self.syvennystaso+1)*" ", tiedosto))
 				self.tiedostot.append(self.tiedostotyyppi(os.path.join(self.hae_nykyinen_polku(), tiedosto)))
 		# Alikansiot yhtä tasoa syvemmällä, ole näiden 'edellinenkansio'
 		for kansio in alikansiot:

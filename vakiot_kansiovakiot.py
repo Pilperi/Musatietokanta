@@ -16,7 +16,7 @@ ETAPALVELIN = "pettankone" # etäpalvelimen nimi (as in, 'ssh ETAPALVELIN' pää
 if os.path.exists("/home/pilperi"):
 	LOKAALI_KONE = "Murakumo"
 elif os.path.exists("/home/taira"):
-	LOKAALI_KONE = "pettan"
+	LOKAALI_KONE = "pettankone"
 elif os.path.exists("/home/olkkari"):
 	LOKAALI_KONE = "olkkari"
 
@@ -27,19 +27,19 @@ else:
 
 # Musiikkien sijainnit
 MUSAKANSIOT = {
-			  None:		  [],
-			  "Murakumo": ["/mnt/Suzuya/Suzuyajako/Musiikki/Aikatsu/"],
-			  "Pettan":   ["/mnt/data/Jouni/Musiikki/",
-			               "/mnt/data/Nipa/Musiikki/",
-			               "/mnt/data/Tursa/Musiikki/",],
-			  "Olkkari":  ["/mnt/Data/Jouni/Musiikki/"],
+			  None:		    [],
+			  "Murakumo":   ["/mnt/Suzuya/Suzuyajako/Musiikki/Aikatsu/"],
+			  "pettankone": ["/mnt/data/Jouni/Musiikki/",
+			                 "/mnt/data/Nipa/Musiikki/",
+			                 "/mnt/data/Tursa/Musiikki/",],
+			  "Olkkari":    ["/mnt/Data/Jouni/Musiikki/"],
 			  }
 # Tietokantatiedostojen sijainnit eri koneilla,
 # voidaan käyttää tietokannan scp:ttämiseen paikalliselle koneelle
 TIETOKANTATIEDOSTOT = {
 			  		  None:		   [],
-					  # "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/musiikit.tietokanta"],
-					  "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/aikatsu_musiikit.tietokanta"],
+					  "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/musiikit.tietokanta"],
+					  # "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/aikatsu_musiikit.tietokanta"],
 					  "pettankone":["/home/taira/tietokannat/Musakirjasto/jounimusat.tietokanta",
 					  			    "/home/taira/tietokannat/Musakirjasto/nipamusat.tietokanta",
 					  			    "/home/taira/tietokannat/Musakirjasto/tursamusat.tietokanta"
