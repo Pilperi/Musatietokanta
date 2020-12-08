@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import hashlib
 import vakiot_kansiovakiot as kvak
 
 def lataa(vaintiedosto, lahdepalvelin, lahdepolku, kohdepalvelin, kohdepolku):
@@ -49,6 +50,34 @@ def siisti_tiedostonimi(nimi):
 	'''
 	nimi = nimi.replace("\"", "\\\"").replace(" ", "\\ ").replace("\'", "\\\'").replace("!", "\\!").replace("(", "\\(").replace(")", "\\)")
 	return(nimi)
+
+def hanki_hash(tiedosto, binmode=True):
+	'''
+	Laskee annetun tiedoston md5-summan heksana,
+	lukemalla sitä sopivan kokoinen palanen kerrallaan.
+	Parametri 'binmode' määrittää, luetaanko tiedostoa
+	binäärimuodossa (metadatoineen kaikkineen) vai
+	tiedoston varsinaista sisältöä utf8-merkkeinä.
+	Oletuksena 64kb binääripaloina,
+	binmode=False -> 4000 merkkiä kerrallaan.
+	'''
+	md5 = hashlib.md5()
+	if os.path.exists(tiedosto):
+		if binmode:
+			with open(tiedosto, 'rb') as filu:
+				while True:
+					data = filu.read(kvak.BUFFERI)
+					if not data:
+						break
+					md5.update(data)
+		else:
+			with open(tiedosto, 'r') as filu:
+				while True:
+					data = filu.read(kvak.MERKKIBUFFERI)
+					if not data:
+						break
+					md5.update(data.encode("utf-8"))
+	return(md5.hexdigest())
 
 #------------Funktiot kansiorakenteiden läpikäymiseen--------------------------
 def paate(tiedosto):

@@ -7,6 +7,8 @@ import os
 
 MUSATIEDOSTOT = ["mp3", "flac", "wma"]
 KIELLETYT = []
+BUFFERI			= 65536 # tiedostoja RAM:iin 64kb paloissa
+MERKKIBUFFERI	= 4000	# jsoneita RAM:iin 4000 merkin paloissa
 
 # Tunnista käytettävä kone kotikansion perusteella.
 LOKAALI_KONE = None
@@ -26,7 +28,7 @@ else:
 # Musiikkien sijainnit
 MUSAKANSIOT = {
 			  None:		  [],
-			  "Murakumo": ["/mnt/Suzuya/Suzuyajako/Musiikki/"],
+			  "Murakumo": ["/mnt/Suzuya/Suzuyajako/Musiikki/Aikatsu/"],
 			  "Pettan":   ["/mnt/data/Jouni/Musiikki/",
 			               "/mnt/data/Nipa/Musiikki/",
 			               "/mnt/data/Tursa/Musiikki/",],
@@ -36,7 +38,8 @@ MUSAKANSIOT = {
 # voidaan käyttää tietokannan scp:ttämiseen paikalliselle koneelle
 TIETOKANTATIEDOSTOT = {
 			  		  None:		   [],
-					  "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/musiikit.tietokanta"],
+					  # "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/musiikit.tietokanta"],
+					  "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/aikatsu_musiikit.tietokanta"],
 					  "pettankone":["/home/taira/tietokannat/Musakirjasto/jounimusat.tietokanta",
 					  			    "/home/taira/tietokannat/Musakirjasto/nipamusat.tietokanta",
 					  			    "/home/taira/tietokannat/Musakirjasto/tursamusat.tietokanta"

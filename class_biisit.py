@@ -410,7 +410,7 @@ def lukutesti():
 
 if __name__ == "__main__":
 	# pass
-	# kirjaa()
+	kirjaa()
 	# Testaa hakukriteereiden käyttöä:
 	for tiedosto in kvak.LOKAALIT_TIETOKANNAT:
 		puu = Tiedostopuu(tiedostotyyppi=Biisi)
