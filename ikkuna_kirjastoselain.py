@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import class_biisit as cb
 import funktiot_kansiofunktiot as kfun
 import vakiot_kansiovakiot as kvak
@@ -134,6 +135,65 @@ class Vaara_monta(QtWidgets.QMessageBox):
 		self.eikyl.setText('Emmää joo')
 		self.exec_()
 
+class Worker(Qt.QRunnable):
+	'''
+	Worker thread
+	'''
+	def __init__(self, ikkuna):
+		super(Worker, self).__init__()
+		self.asia = ikkuna.asia
+		self.ikkuna = ikkuna
+		self.setAutoDelete(True)
+
+	def run(self):
+		if type(self.asia) is Kansioelementti:
+			# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
+			# läimäise loppuun riittävän iso juokseva numero
+			kansionimi = self.asia.puu.kansio
+			i = 0
+			while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
+				kansionimi = f"{self.asia.puu.kansio}-{i}"
+				print(kansionimi)
+			koodi = kfun.lataa(vaintiedosto=False,\
+							   lahdepalvelin=kvak.ETAPALVELIN,
+							   lahdepolku=self.asia.tiedostopolku(),
+							   kohdepalvelin=None,
+							   kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
+		else:
+			# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
+			# läimäise loppuun riittävän iso juokseva numero
+			tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.asia.tiedosto.tiedostonimi)
+			print(tiedostonimi_runko)
+			print(tiedostonimi_paate)
+			tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
+			i = 0
+			while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
+				tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
+				print(tiedostonimi)
+			koodi = kfun.lataa(vaintiedosto=True,\
+							   lahdepalvelin=kvak.ETAPALVELIN,
+							   lahdepolku=self.asia.tiedostopolku(),
+							   kohdepalvelin=None,
+							   kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
+		if koodi:
+			print("Saatiin ladattua")
+		else:
+			print("Ei saatu ladattua")
+		print("Sulje latausikkuna")
+		self.ikkuna.close()
+
+class Latausikkuna(QtWidgets.QMessageBox):
+	def __init__(self, asia, timeout=120):
+		super().__init__()
+		self.setWindowTitle('Ladataan')
+		# self.setStandardButtons(QtWidgets.QMessageBox.Yes)
+		self.setStandardButtons(QtWidgets.QMessageBox.NoButton)
+		self.setText("Ladataan kappaleita")
+		self.asia = asia
+		self.show()
+		self.threadpool = QtCore.QThreadPool()
+		worker = Worker(self)
+		self.threadpool.globalInstance().start(worker)
 
 class Selausikkuna(QtWidgets.QMainWindow):
 	def __init__(self):
@@ -293,26 +353,14 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		Lataa valittu asia.
 		'''
 		asia = self.puumalli.itemFromIndex(self.puu.currentIndex())
-		if type(asia) in [Tiedostoelementti, Kansioelementti]:
-			print(asia.tiedostopolku())
-			if type(asia) is Kansioelementti:
-				biiseja = asia.puu.sisallon_maara()
-				vaaraikkuna = Vaara_monta(biiseja[0])
-				if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
-					print("I love danger zone")
-					koodi = kfun.lataa(vaintiedosto=False,\
-									   lahdepalvelin=kvak.ETAPALVELIN,
-									   lahdepolku=asia.tiedostopolku(),
-									   kohdepalvelin=None,
-									   kohdepolku=os.path.join(kvak.BIISIKANSIO, asia.puu.kansio))
-				else:
-					print("Pelottaa")
-			else:
-				koodi = kfun.lataa(vaintiedosto=True,\
-								   lahdepalvelin=kvak.ETAPALVELIN,
-								   lahdepolku=asia.tiedostopolku(),
-								   kohdepalvelin=None,
-								   kohdepolku=os.path.join(kvak.BIISIKANSIO, asia.tiedosto.tiedostonimi))
+		if type(asia) is Kansioelementti:
+			biiseja = asia.puu.sisallon_maara()
+			vaaraikkuna = Vaara_monta(biiseja[0])
+			if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
+				latausikkuna = Latausikkuna(asia)
+		elif type(asia) is Tiedostoelementti:
+			latausikkuna = Latausikkuna(asia)
+
 
 	def nayta_tiedot(self):
 		'''
