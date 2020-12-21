@@ -320,17 +320,17 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		hakudikti = {}
 		oli_tuloksia = False
 		# Sarjan nimi
-		artistinnimessa = None
-		if self.nimihaku.text() and self.nimihaku.text() != "Artistin nimi":
-			artistinnimessa = self.nimihaku.text().split(" ")
-		print(f"artisti: {artistinnimessa}")
+		hakutermit = None
+		if self.nimihaku.text() and self.nimihaku.text() != "Vapaahaku":
+			hakutermit = self.nimihaku.text().split(" ")
+		print(f"Vapaahaku termeillä: {hakutermit}")
 		hakudikti = {
-					"vapaahaku":     artistinnimessa,
-					"ehtona_ja":     False,
-					"artistissa":    artistinnimessa,
-					"biisissa":      artistinnimessa,
-					"albumissa":     artistinnimessa,
-					"tiedostossa":   artistinnimessa
+					"vapaahaku":     hakutermit
+					# "ehtona_ja":     False,
+					# "artistissa":    artistinnimessa,
+					# "biisissa":      artistinnimessa,
+					# "albumissa":     artistinnimessa,
+					# "tiedostossa":   artistinnimessa
 					# "raitanumero":   (1,3)
 					}
 		haettavaa = any([hakudikti[a] is not None for a in hakudikti])

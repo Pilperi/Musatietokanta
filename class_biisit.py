@@ -252,14 +252,27 @@ class Hakukriteerit:
 		'''
 		# Vapaakenttähaku menee eri reittiä
 		if type(self.vapaahaku) is list and all(type(a) is str for a in self.vapaahaku):
+			self.vapaahaku = [a.lower() for a in self.vapaahaku]
 			if any([a in str(biisi.esittaja).lower() for a in self.vapaahaku]):
+				print(f"{biisi.esittaja} täsmää johonkin {self.vapaahaku}")
 				return(True)
 			if any([a in str(biisi.biisinimi).lower() for a in self.vapaahaku]):
+				print(f"{biisi.biisinimi} täsmää johonkin {self.vapaahaku}")
 				return(True)
 			if any([a in str(biisi.albuminimi).lower() for a in self.vapaahaku]):
+				print(f"{biisi.albuminimi} täsmää johonkin {self.vapaahaku}")
 				return(True)
 			if any([a in str(biisi.tiedostonimi).lower() for a in self.vapaahaku]):
+				print(f"{biisi.tiedostonimi} täsmää johonkin {self.vapaahaku}")
 				return(True)
+			# purkkaa: korvaa tiedostonimitermi hetkellisesti vapaahakutermeillä
+			vanha_tiedostonimi = self.tiedostonimessa
+			for termi in self.vapaahaku:
+				self.tiedostonimessa = [termi]
+				if self.tarkista_kansio(puu):
+					self.tiedostonimessa = vanha_tiedostonimi
+					return(True)
+			self.tiedostonimessa = vanha_tiedostonimi
 			return(False)
 
 		tayttyneet_kriteerit = 0
