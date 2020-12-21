@@ -28,7 +28,7 @@ else:
 # Musiikkien sijainnit
 MUSAKANSIOT = {
 			  None:		    [],
-			  "Murakumo":   ["/mnt/Suzuya/Suzuyajako/Musiikki/Aikatsu/"],
+			  "Murakumo":   ["/mnt/Suzuya/Suzuyajako/Musiikki/"],
 			  "pettankone": ["/mnt/data/Jouni/Musiikki/",
 			                 "/mnt/data/Nipa/Musiikki/",
 			                 "/mnt/data/Tursa/Musiikki/",],
@@ -39,7 +39,6 @@ MUSAKANSIOT = {
 TIETOKANTATIEDOSTOT = {
 			  		  None:		   [],
 					  "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/musiikit.tietokanta"],
-					  # "Murakumo":  ["/home/pilperi/Tietokannat/Musiikit/aikatsu_musiikit.tietokanta"],
 					  "pettankone":["/home/taira/tietokannat/Musakirjasto/jounimusat.tietokanta",
 					  			    "/home/taira/tietokannat/Musakirjasto/nipamusat.tietokanta",
 					  			    "/home/taira/tietokannat/Musakirjasto/tursamusat.tietokanta"

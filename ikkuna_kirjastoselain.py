@@ -199,6 +199,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 	def __init__(self):
 		super().__init__()
 		self.initflag = True
+		self.setStyleSheet("background-color: #31363b")
 		# Lataa tietokannat
 		self.tietokantatiedostot = []
 		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
@@ -267,6 +268,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.taulukko.setReadOnly(True)
 		self.taulukko.setAlignment(QtCore.Qt.AlignTop)
 		self.taulukko.setWordWrapMode(0)
+		self.taulukko.setStyleSheet("background-color: #31363b")
 
 		# Tietokantavalitsin
 		self.tietokantavalitsin = QtWidgets.QComboBox(self)
