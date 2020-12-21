@@ -48,13 +48,14 @@ def siisti_tiedostonimi(nimi):
 	nimi : str
 		Siivottu stringi.
 	'''
-	nimi = nimi.replace("\"", "\\\""\
-		      ).replace(" ", "\\ "\
-		      ).replace("\'", "\\\'"\
-		      ).replace("!", "\\!"\
-		      ).replace("(", "\\("\
-		      ).replace(")", "\\)"\
-		      ).replace("&", "\\&")
+	nimi = nimi.replace("\"", "\\\"")\
+		      .replace(" ", "\\ ")\
+		      .replace("\'", "\\\'")\
+		      .replace("!", "\\!")\
+		      .replace("(", "\\(")\
+		      .replace(")", "\\)")\
+		      .replace("&", "\\&")\
+		      .replace(";", "\\;")
 	return(nimi)
 
 def hanki_hash(tiedosto, binmode=True):
