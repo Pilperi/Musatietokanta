@@ -159,6 +159,13 @@ class Worker(Qt.QRunnable):
 							   lahdepolku=self.asia.tiedostopolku(),
 							   kohdepalvelin=None,
 							   kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
+			if koodi:
+				print("Saatiin ladattua")
+				lisayskoodi = kfun.lisaa_soittolistaan(tyyppi="kansio", sijainti=os.path.join(kvak.BIISIKANSIO, kansionimi))
+				if lisayskoodi:
+					print("Lisättiin soittolistaan")
+			else:
+				print("Ei saatu ladattua")
 		else:
 			# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
 			# läimäise loppuun riittävän iso juokseva numero
@@ -175,10 +182,13 @@ class Worker(Qt.QRunnable):
 							   lahdepolku=self.asia.tiedostopolku(),
 							   kohdepalvelin=None,
 							   kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
-		if koodi:
-			print("Saatiin ladattua")
-		else:
-			print("Ei saatu ladattua")
+			if koodi:
+				print("Saatiin ladattua")
+				lisayskoodi = kfun.lisaa_soittolistaan(tyyppi="kappale", sijainti=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
+				if lisayskoodi:
+					print("Lisättiin soittolistaan")
+			else:
+				print("Ei saatu ladattua")
 		print("Sulje latausikkuna")
 		self.ikkuna.close()
 

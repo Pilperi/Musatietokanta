@@ -86,6 +86,22 @@ def hanki_hash(tiedosto, binmode=True):
 					md5.update(data.encode("utf-8"))
 	return(md5.hexdigest())
 
+def lisaa_soittolistaan(tyyppi="kansio", sijainti=kvak.BIISIKANSIO):
+	'''
+	Lisää kappale tai kansio soitinohjelman soittolistalle,
+	komennolla joka määritelty vakioiden puolella.
+	'''
+	koodi = False
+	if tyyppi == "kansio":
+		print("kansio")
+		koodi = subprocess.call([*kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN, sijainti])
+		print(koodi)
+	elif len(paate(sijainti)[1]) and paate(sijainti)[1].lower() in kvak.MUSATIEDOSTOT:
+		print("kappale")
+		koodi = subprocess.call([*kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN, sijainti])
+		print(koodi)
+	return(koodi)
+
 #------------Funktiot kansiorakenteiden läpikäymiseen--------------------------
 def paate(tiedosto):
 	'''
