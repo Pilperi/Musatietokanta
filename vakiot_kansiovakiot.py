@@ -26,10 +26,16 @@ else:
 	print(f"Lokaali kone: {LOKAALI_KONE}")
 
 # Komento jolla lisätään ladattu kappale tai kansio soittolistaan
-# KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["deadbeef", "--queue"]
-# KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["deadbeef", "--queue"]
-KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["audacious", "-e"]
-KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["audacious", "-e"]
+SOITIN = "deadbeef"
+if SOITIN == "deadbeef":
+	KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["deadbeef", "--queue"]
+	KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["deadbeef", "--queue"]
+elif SOITIN == "audacious":
+	KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["audacious", "-e"]
+	KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["audacious", "-e"]
+else:
+	KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["ls"] # dunno, laitetaan vaikka ls
+	KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["ls"]
 
 # Musiikkien sijainnit
 MUSAKANSIOT = {
