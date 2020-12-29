@@ -146,6 +146,7 @@ class Worker(Qt.QRunnable):
 		self.setAutoDelete(True)
 
 	def run(self):
+		print("Ladataan ja lisätään soittolistalle.")
 		if type(self.asia) is Kansioelementti:
 			# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
 			# läimäise loppuun riittävän iso juokseva numero
@@ -154,41 +155,28 @@ class Worker(Qt.QRunnable):
 			while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
 				kansionimi = f"{self.asia.puu.kansio}-{i}"
 				print(kansionimi)
-			koodi = kfun.lataa(vaintiedosto=False,\
-							   lahdepalvelin=kvak.ETAPALVELIN,
-							   lahdepolku=self.asia.tiedostopolku(),
-							   kohdepalvelin=None,
-							   kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
-			if koodi:
-				print("Saatiin ladattua")
-				lisayskoodi = kfun.lisaa_soittolistaan(tyyppi="kansio", sijainti=os.path.join(kvak.BIISIKANSIO, kansionimi))
-				if lisayskoodi:
-					print("Lisättiin soittolistaan")
-			else:
-				print("Ei saatu ladattua")
+			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
+                                              lahdepalvelin=kvak.ETAPALVELIN,
+                                              lahdepolku=self.asia.tiedostopolku(),
+                                              kohdepalvelin=None,
+                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
 		else:
 			# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
 			# läimäise loppuun riittävän iso juokseva numero
 			tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.asia.tiedosto.tiedostonimi)
-			print(tiedostonimi_runko)
-			print(tiedostonimi_paate)
 			tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
 			i = 0
+			print(tiedostonimi)
 			while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
 				tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
 				print(tiedostonimi)
-			koodi = kfun.lataa(vaintiedosto=True,\
-							   lahdepalvelin=kvak.ETAPALVELIN,
-							   lahdepolku=self.asia.tiedostopolku(),
-							   kohdepalvelin=None,
-							   kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
-			if koodi:
-				print("Saatiin ladattua")
-				lisayskoodi = kfun.lisaa_soittolistaan(tyyppi="kappale", sijainti=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
-				if lisayskoodi:
-					print("Lisättiin soittolistaan")
-			else:
-				print("Ei saatu ladattua")
+				i += 1
+			print(f"-> {tiedostonimi}")
+			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+                                              lahdepalvelin=kvak.ETAPALVELIN,
+                                              lahdepolku=self.asia.tiedostopolku(),
+                                              kohdepalvelin=None,
+                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
 		print("Sulje latausikkuna")
 		self.ikkuna.close()
 
@@ -369,9 +357,40 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			biiseja = asia.puu.sisallon_maara()
 			vaaraikkuna = Vaara_monta(biiseja[0])
 			if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
-				latausikkuna = Latausikkuna(asia)
+				# latausikkuna = Latausikkuna(asia)
+				print("Ladataan ja lisätään soittolistalle.")
+				# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
+				# läimäise loppuun riittävän iso juokseva numero
+				kansionimi = asia.puu.kansio
+				i = 0
+				while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
+					print(f"{kansionimi} on jo biisikansiossa")
+					kansionimi = f"{asia.puu.kansio}-{i}"
+					i += 1
+				print(f"-> {kansionimi} on vapaa nimi kansiolle")
+				kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
+	                                              lahdepalvelin=kvak.ETAPALVELIN,
+	                                              lahdepolku=asia.tiedostopolku(),
+	                                              kohdepalvelin=None,
+	                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
 		elif type(asia) is Tiedostoelementti:
-			latausikkuna = Latausikkuna(asia)
+			# latausikkuna = Latausikkuna(asia)
+			# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
+			# läimäise loppuun riittävän iso juokseva numero
+			tiedostonimi_runko, tiedostonimi_paate = kfun.paate(asia.tiedosto.tiedostonimi)
+			tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
+			i = 0
+			print(tiedostonimi)
+			while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
+				print(f"{tiedostonimi} on jo biisikansiossa")
+				tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
+				i += 1
+			print(f"-> {tiedostonimi} on vapaa tiedostonimi")
+			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+                                              lahdepalvelin=kvak.ETAPALVELIN,
+                                              lahdepolku=asia.tiedostopolku(),
+                                              kohdepalvelin=None,
+                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
 
 
 	def nayta_tiedot(self):

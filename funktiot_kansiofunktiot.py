@@ -28,12 +28,12 @@ def lataa(vaintiedosto, lahdepalvelin, lahdepolku, kohdepalvelin, kohdepolku):
 	print(kohde)
 	if vaintiedosto:
 		koodi = subprocess.call(["scp", "-T", kansiopolku, kohde])
-		# koodi = subprocess.call(["scp", kansiopolku, kohde])
 	else:
 		koodi = subprocess.call(["scp","-r", "-T", kansiopolku, kohde])
-	if koodi != 1:
-		return(True)
-	return(False)
+	return(True)
+	# if koodi != 1:
+		# return(True)
+	# return(False)
 
 def siisti_tiedostonimi(nimi):
 	'''
@@ -101,6 +101,47 @@ def lisaa_soittolistaan(tyyppi="kansio", sijainti=kvak.BIISIKANSIO):
 		koodi = subprocess.call([*kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN, sijainti])
 		print(koodi)
 	return(koodi)
+
+def lataa_ja_lisaa_soittolistaan(vaintiedosto, lahdepalvelin, lahdepolku, kohdepalvelin, kohdepolku):
+	'''
+	Lataa biisi tai kansio paikalliselle kovalevylle ja sen jälkeen lisää soittolistaan.
+
+	Ottaa:
+	vaintiedosto: bool
+		Jos True, yksittäinen tiedosto. Muutoin kansio.
+	lahdepalvelin: str tai Falseksi kääntyvä
+		Lähdepalvelimen nimi. Jos "tyhjä"" (bool->False), paikallinen sijainti.
+	lahdepolku: str
+		Kansiopolku ladattavalle asialle, oli se sitten paikallinen tai etäjuttu.
+	kohdepalvelin: str tai Falseksi kääntyvä
+		Kohdepalvelin. Jos "tyhjä" (bool->False), paikallinen sijainti.
+	kohdepolku: str
+		Kansiopolku jonne kopioidaan.
+	'''
+	# Polku palvelimella
+	if lahdepalvelin:
+		kansiopolku = "{}".format(siisti_tiedostonimi(lahdepolku))
+	# Paikallinen polku
+	else:
+		kansiopolku = "{}".format(siisti_tiedostonimi(lahdepolku))
+	# Polku palvelimella
+	if kohdepalvelin:
+		# kohde = "{}:{}".format(kohdepalvelin, siisti_tiedostonimi(kohdepolku))
+		kohde = "{}".format(kohdepalvelin, siisti_tiedostonimi(kohdepolku))
+	# Paikallinen polku
+	else:
+		# kohde = "{}".format(siisti_tiedostonimi(kohdepolku))
+		kohde = kohdepolku.replace("\"", "\\\"")
+	skripti_sijainti = os.path.join(os.getcwd(), "lataa_ja_lisaa.sh") # kun tavallinen purkka ei riitä
+	if vaintiedosto and len(paate(kohde)[1]) and paate(kohde)[1].lower() in kvak.MUSATIEDOSTOT:
+		print(f"Ladataan tiedosto \n{kansiopolku}\nkohteeseen\n{kohde}")
+		subprocess.Popen([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN])
+		# subprocess.Popen(["scp", "-T", kansiopolku, kohde, *kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN, kohde])
+	else:
+		print(f"Ladataan kansio \n{kansiopolku}\nkohteeseen\n{kohde}")
+		subprocess.Popen([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN])
+		# subprocess.Popen(["scp","-r", "-T", kansiopolku, kohde, *kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN, kohde])
+		
 
 #------------Funktiot kansiorakenteiden läpikäymiseen--------------------------
 def paate(tiedosto):

@@ -28,8 +28,10 @@ else:
 # Komento jolla lisätään ladattu kappale tai kansio soittolistaan
 SOITIN = "deadbeef"
 if SOITIN == "deadbeef":
-	KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["deadbeef", "--queue"]
-	KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["deadbeef", "--queue"]
+	# KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["deadbeef" "--queue"]
+	KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = "deadbeef --queue"
+	# KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["deadbeef" "--queue"]
+	KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = "deadbeef --queue"
 elif SOITIN == "audacious":
 	KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ["audacious", "-e"]
 	KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ["audacious", "-e"]
@@ -60,7 +62,8 @@ TIETOKANTATIEDOSTOT = {
 
 # Temppikansion sijainnit:
 BIISIKANSIOT = {
-			  "Murakumo": "Biisit",
+			  "Murakumo": "/home/pilperi/Scripts/Musatietokanta/Biisit"
+			  # "Murakumo": "Biisit",
 			  }
 BIISIKANSIO = BIISIKANSIOT.get(LOKAALI_KONE)
 if BIISIKANSIO is None:
