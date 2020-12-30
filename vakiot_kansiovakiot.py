@@ -23,44 +23,86 @@ if LOKAALI_KONE is None:
 else:
 	print(f"Lokaali kone: {LOKAALI_KONE}")
 
-# Luetaan asetukset INI-tiedostosta
+# Luetaan asetukset INI-tiedostosta, jos sellainen löytyy.
 config = configparser.ConfigParser()
-# Jos asetustiedostoa ei ole olemassa, tehdään sellainen
-if not os.path.exists("./asetukset.ini"):
-	print("Asetustiedostoa ei löytynyt, tehdään sellainen.")
-	# Tiedostosijainnit sun muut
-	config['Kansiorakenteet'] = {}
-	config.set("Kansiorakenteet", "musakansiot", "[\"/polku/kansioon\"]")
-	config.set("Kansiorakenteet", "sallitut_tiedostomuodot", "[\"mp3\", \"flac\", \"wma\", \"ogg\"]")
-	config.set("Kansiorakenteet", "kielletyt_tiedostomuodot", "[]")
-	config.set("Kansiorakenteet", "etapalvelin", "pettankone")
-	config.set("Kansiorakenteet", "tietokantatiedostot_lokaalit", "[\"/tietokantakansio/esimerkki.tietokanta\"]")
-	config.set("Kansiorakenteet", "tietokantatiedostot_etakone", json.dumps(["/home/taira/tietokannat/Musakirjasto/jounimusat.tietokanta",\
-                                  "/home/taira/tietokannat/Musakirjasto/nipamusat.tietokanta",\
-                                  "/home/taira/tietokannat/Musakirjasto/tursamusat.tietokanta"]))
-	config.set("Kansiorakenteet", "latauskansio", "./Biisit")
-	# Komennot
-	config['Komennot'] = {}
-	config.set("Komennot", "soitin", "ls")
-	config.set("Komennot", "lisayskomento_kappale", "-l")
-	config.set("Komennot", "lisayskomento_kansio", "--help")
-	with open('./asetukset.ini', 'w+') as configfile:
-		config.write(configfile)
-else:
+if os.path.exists("./asetukset.ini"):
+	print("Luetaan asetukset .ini-tiedostosta")
 	config.read("./asetukset.ini")
+# Tarkistetaan että tarvittavat asiat löytyy initiedostosta. Jos ei, laitetaan oletukset mukaan.
+# Tiedostosijainnit sun muut
+# Koko osio uupuu
+if "Kansiorakenteet" not in config:
+	config['Kansiorakenteet'] = {}
+# Musakansio uupuu
+if "musakansiot" not in config['Kansiorakenteet']:
+	print("Musakansion sijaintia ei määritelty, laitetaan tilapäisarvo")
+	config.set("Kansiorakenteet", "musakansiot", "[\"/polku/kansioon\"]")
+# Sallitut tiedostomuodot uupuu
+if "sallitut tiedostomuodot" not in config['Kansiorakenteet']:
+	print("Sallittuja tiedostomuotoja ei määritelty, asetetaan oletusarvot")
+	config.set("Kansiorakenteet", "sallitut tiedostomuodot", "[\"mp3\", \"flac\", \"wma\", \"ogg\"]")
+# Kielletyt tiedostomuodot uupuu (tätä ei oikeestaan tarttis)
+if "kielletyt tiedostomuodot" not in config['Kansiorakenteet']:
+	print("Kiellettyjä tiedostomuotoja ei määritelty, asetetaan oletusarvot muodon vuoksi")
+	config.set("Kansiorakenteet", "kielletyt tiedostomuodot", "[]")
+# Etäpalvelin uupuu
+if "etapalvelin" not in config['Kansiorakenteet']:
+	print("Etäpalvelinta ei määritelty, laitetaan \'pettankone\'")
+	config.set("Kansiorakenteet", "etapalvelin", "pettankone")
+# Paikalliset tietokannat uupuu
+if "tietokantatiedostot lokaalit" not in config['Kansiorakenteet']:
+	print("Paikallisten tietokantojen sijaintia ei määritelty, laitetaan tilapäisarvo")
+	config.set("Kansiorakenteet", "tietokantatiedostot lokaalit", "[\"/tietokantakansio/esimerkki.tietokanta\"]")
+# Etätietokannat uupuu
+if "tietokantatiedostot etakone" not in config['Kansiorakenteet']:
+	print("Etäkoneen tietokantasijainteja ei määritelty, laitetaan pettanin")
+	config.set("Kansiorakenteet", "tietokantatiedostot etakone", json.dumps(["/home/taira/tietokannat/Musakirjasto/jounimusat.tietokanta",\
+                              "/home/taira/tietokannat/Musakirjasto/nipamusat.tietokanta",\
+                              "/home/taira/tietokannat/Musakirjasto/tursamusat.tietokanta"], indent=4))
+# Latauskansio uupuu
+if "latauskansio" not in config['Kansiorakenteet']:
+	print("Latausten kohdekansiota ei määritelty, laitetaan \'./Biisit\'")
+	config.set("Kansiorakenteet", "latauskansio", "./Biisit")
+
+# Komennot
+if "Komennot" not in config:
+	config["Komennot"] = {}
+# Latausmäärän varoitusrajaa ei asetettu
+if "raja latausvaroitus" not in config["Komennot"]:
+	print("Varoitusrajaa monen tiedoston lataamiselle ei määritelty, laitetaan 5")
+	config.set("Komennot", "raja latausvaroitus", "5")
+# Soitinohjelmaa ei määritelty
+if "soitin" not in config["Komennot"]:
+	print("Soitinohjelmaa ei määritelty, laitetaan \'ls\' (as in, näytä vain tiedot komentorivillä)")
+	config.set("Komennot", "soitin", "ls")
+# Listalle lisäämisen komentoa ei määritelty
+if "lisayskomento kappale" not in config["Komennot"]:
+	print("Soitinohjelman listaanlisäyskomentoa ei määritelty, laitetaan \'-l\' (as in, näytä tiedoston tiedot)")
+	config.set("Komennot", "lisayskomento kappale", "-l")
+# Listalle lisäämisen komentoa ei määritelty
+if "lisayskomento kansio" not in config["Komennot"]:
+	print("Soitinohjelman komentoa, jolla lisätään kokonainen kansio listaan, ei ole määritelty, laitetaan \'--size\' (as in, näytä tiedoston koko)")
+	config.set("Komennot", "lisayskomento kansio", "--human-readable")
+
+# Kirjoitetaan (takaisin) tiedostoon
+with open('./asetukset.ini', 'w+') as configfile:
+	print("Tallennetaan asetukset tiedostoon")
+	config.write(configfile)
+
 # Asetetaan vakioihin
 # [Kansiorakenteet]
 LOKAALIT_MUSIIKIT                   = json.loads(config.get("Kansiorakenteet","musakansiot"))
-MUSATIEDOSTOT                       = json.loads(config.get("Kansiorakenteet","sallitut_tiedostomuodot"))
-KIELLETYT                           = json.loads(config.get("Kansiorakenteet","kielletyt_tiedostomuodot"))
+MUSATIEDOSTOT                       = json.loads(config.get("Kansiorakenteet","sallitut tiedostomuodot"))
+KIELLETYT                           = json.loads(config.get("Kansiorakenteet","kielletyt tiedostomuodot"))
 ETAPALVELIN                         = config.get("Kansiorakenteet","etapalvelin")
-LOKAALIT_TIETOKANNAT                = json.loads(config.get("Kansiorakenteet","tietokantatiedostot_lokaalit"))
-ETAPALVELIN_TIETOKANNAT             = json.loads(config.get("Kansiorakenteet","tietokantatiedostot_etakone"))
+LOKAALIT_TIETOKANNAT                = json.loads(config.get("Kansiorakenteet","tietokantatiedostot lokaalit"))
+ETAPALVELIN_TIETOKANNAT             = json.loads(config.get("Kansiorakenteet","tietokantatiedostot etakone"))
 BIISIKANSIO                         = config.get("Kansiorakenteet","latauskansio")
 # [Komennot]
+VAROITURAJA                         = config.getint("Komennot","raja latausvaroitus")
 SOITIN                              = config.get("Komennot","soitin")
-KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = SOITIN + " " + config.get("Komennot","lisayskomento_kappale")
-KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = SOITIN + " " + config.get("Komennot","lisayskomento_kansio")
+KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = SOITIN + " " + config.get("Komennot","lisayskomento kappale")
+KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = SOITIN + " " + config.get("Komennot","lisayskomento kansio")
 
 # Jos latauskansiota ei ole, yritetään tehdä se
 if not os.path.exists(BIISIKANSIO):

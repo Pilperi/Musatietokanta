@@ -354,9 +354,17 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		asia = self.puumalli.itemFromIndex(self.puu.currentIndex())
 		if type(asia) is Kansioelementti:
-			biiseja = asia.puu.sisallon_maara()
-			vaaraikkuna = Vaara_monta(biiseja[0])
-			if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
+			biiseja = asia.puu.sisallon_maara()[0]
+			latauslupa = False
+			# Monta kappaletta, varmistetaan
+			if biiseja > kvak.VAROITURAJA:
+				vaaraikkuna = Vaara_monta(biiseja)
+				if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
+					latauslupa = True
+			# Ei kovin montaa kappaletta
+			else:
+				latauslupa = True
+			if latauslupa:
 				# latausikkuna = Latausikkuna(asia)
 				print("Ladataan ja lisätään soittolistalle.")
 				# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
@@ -415,11 +423,3 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.tiedostopuu.lue_tiedostosta(tietokanta)
 		tietokanta.close()
 		self.kansoita_puu(self.tiedostopuu)
-
-
-if __name__ == "__main__":
-	app = QtWidgets.QApplication([])
-	ikkuna = Selausikkuna()
-	ikkuna.show()
-
-	sys.exit(app.exec_())

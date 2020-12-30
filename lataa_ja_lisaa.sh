@@ -22,7 +22,7 @@ then
  echo "scp -T $palvelin:$lahdepolku $kohdepolku"
  scp -T "$palvelin:$lahdepolku" "$kohdepolku"
 else
- "scp -T -r $palvelin:$lahdepolku $kohdepolku"
+ echo "scp -T -r $palvelin:$lahdepolku $kohdepolku"
  scp -T -r "$palvelin:$lahdepolku" "$kohdepolku"
 fi
 
