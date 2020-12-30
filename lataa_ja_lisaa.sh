@@ -14,6 +14,7 @@ echo "kohdetiedosto: $kohdepolku"
 echo "vainbiisi:     $vainbiisi"
 echo "soitinkomento: $soitinkomento"
 echo ""
+echo "Etäkoneella löytyykö:"
 ssh $palvelin "ls -l $lahdepolku"
 # Lataa
 if [ $vainbiisi -eq 1 ]

@@ -126,11 +126,9 @@ def lataa_ja_lisaa_soittolistaan(vaintiedosto, lahdepalvelin, lahdepolku, kohdep
 		kansiopolku = "{}".format(siisti_tiedostonimi(lahdepolku))
 	# Polku palvelimella
 	if kohdepalvelin:
-		# kohde = "{}:{}".format(kohdepalvelin, siisti_tiedostonimi(kohdepolku))
-		kohde = "{}".format(kohdepalvelin, siisti_tiedostonimi(kohdepolku))
+		kohde = "{}:{}".format(kohdepalvelin, siisti_tiedostonimi(kohdepolku))
 	# Paikallinen polku
 	else:
-		# kohde = "{}".format(siisti_tiedostonimi(kohdepolku))
 		kohde = kohdepolku.replace("\"", "\\\"")
 	skripti_sijainti = os.path.join(os.getcwd(), "lataa_ja_lisaa.sh") # kun tavallinen purkka ei riitä
 	if vaintiedosto and len(paate(kohde)[1]) and paate(kohde)[1].lower() in kvak.MUSATIEDOSTOT:

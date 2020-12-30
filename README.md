@@ -14,7 +14,7 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 
 		[x] Pythonin kautta pyöritettävä SCP (Erikoismerkit???)
 
-		[ ] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
+		[x] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
 
 		[/] Graafinen käyttöliittymä (Qt)
 			[/] Hakukentät (mitä kaikkea halutaan hakea, ks. Hakukriteerit)
