@@ -1,3 +1,4 @@
 *.tietokanta
 logi*
+*.ini
 */
