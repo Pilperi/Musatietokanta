@@ -10,15 +10,17 @@ from PyQt5 import Qt, QtCore, QtWidgets, QtGui
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
 
 # Ikkunan asioiden mitat
-IKKUNAMITAT   = [700,700]
-MARGINAALIT   = [10,10]
-HAKUMITAT     = [MARGINAALIT[0], 205, MARGINAALIT[1], 35]
-HAKULABEL     = 20
-HAKUNAPPI     = 80
-PUUMITAT      = [MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3])]
-TAULUKKOMITAT = [PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210]
-LATAUSNAPPI   = [TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50]
-TIETOKANTAVALITSIN = [HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 205, HAKUMITAT[3]]
+IKKUNAMITAT    = [700,700]
+MARGINAALIT    = [10,10]
+HAKUMITAT      = [MARGINAALIT[0], 205, MARGINAALIT[1], 35]
+HAKULABEL      = 20
+HAKUNAPPI      = 80
+PUUMITAT       = [MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3])]
+TAULUKKOMITAT  = [PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210]
+LATAUSNAPPI    = [TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50]
+ASETUSVALITSIN = [HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 175, HAKUMITAT[3]]
+ASETUSNAPPI    = [ASETUSVALITSIN[0]+ASETUSVALITSIN[2], HAKUMITAT[3]-5, 28, ASETUSVALITSIN[3]]
+TIETOKANTAVALITSIN = [TAULUKKOMITAT[0], TAULUKKOMITAT[2]-HAKUMITAT[3], TAULUKKOMITAT[1], HAKUMITAT[3]]
 # Puun muotoiluparametrit
 PAATASOT      = 2
 
@@ -268,6 +270,20 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.taulukko.setWordWrapMode(0)
 		self.taulukko.setStyleSheet("background-color: #31363b")
 
+		# Asetusvalitsin
+		self.asetusvalitsin = QtWidgets.QComboBox(self)
+		self.asetusvalitsin.setGeometry(QtCore.QRect(*ASETUSVALITSIN))
+		self.asetusvalitsin.addItems([a for a in kvak.config.keys() if a != "DEFAULT"])
+		self.asetusvalitsin.currentIndexChanged.connect(self.vaihda_asetuksia)
+		# Lisää uusi asetussetti TODO
+		self.asetusnappi = QtWidgets.QPushButton(self)
+		self.asetusnappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
+		self.asetusnappi.setGeometry(QtCore.QRect(*ASETUSNAPPI))
+		self.asetusnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+		self.asetusnappi.setFocusPolicy(QtCore.Qt.NoFocus)
+		self.asetusnappi.setText("+")
+		self.asetusnappi.clicked.connect(self.lisaa_asetukset)
+
 		# Tietokantavalitsin
 		self.tietokantavalitsin = QtWidgets.QComboBox(self)
 		self.tietokantavalitsin.setGeometry(QtCore.QRect(*TIETOKANTAVALITSIN))
@@ -400,7 +416,6 @@ class Selausikkuna(QtWidgets.QMainWindow):
                                               kohdepalvelin=None,
                                               kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
 
-
 	def nayta_tiedot(self):
 		'''
 		Näytä valitun biisin tai kansion tiedot.
@@ -423,3 +438,45 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.tiedostopuu.lue_tiedostosta(tietokanta)
 		tietokanta.close()
 		self.kansoita_puu(self.tiedostopuu)
+
+	def lisaa_asetukset(self):
+		'''
+		Lisää uudet asetukset INI-tiedostoon.
+		Avaa erillisen lisäysikkunan tätä varten.
+		'''
+		pass
+
+	def vaihda_asetuksia(self):
+		'''
+		Vaihtaa asetuskantaa (läh. palvelinta).
+		'''
+		# Lue asetussetin nimi ja vaihda vakiot
+		asetussetti = self.asetusvalitsin.currentText()
+		kvak.vaihda_asetuskokoonpanoa(asetussetti)
+		# Uusi tietokantatiedostot
+		self.tietokantatiedostot = []
+		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
+			koodi = kfun.lataa(vaintiedosto=True,\
+							   lahdepalvelin=kvak.ETAPALVELIN,\
+							   lahdepolku=tietokanta,\
+							   kohdepalvelin=None,\
+							   kohdepolku=os.path.basename(tietokanta))
+			if koodi:
+				self.tietokantatiedostot.append(os.path.basename(tietokanta))
+		# Uusi tiedostopuu
+		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
+		if len(self.tietokantatiedostot):
+			tietokanta = open(self.tietokantatiedostot[0], "r")
+			self.tiedostopuu.lue_tiedostosta(tietokanta)
+			tietokanta.close()
+			self.juurisolmu.removeRow(0)
+			self.kansoita_puu(self.tiedostopuu)
+			self.puu.setModel(self.puumalli)
+			self.puu.expand(self.puumalli.index(0,0))
+
+	def closeEvent(self, event):
+		'''
+		Tallenna asetukset ennen sulkemista.
+		'''
+		kvak.tallenna_asetukset()
+		event.accept()
