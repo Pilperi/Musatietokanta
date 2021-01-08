@@ -10,17 +10,19 @@ from PyQt5 import Qt, QtCore, QtWidgets, QtGui
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
 
 # Ikkunan asioiden mitat
-IKKUNAMITAT    = [700,700]
-MARGINAALIT    = [10,10]
-HAKUMITAT      = [MARGINAALIT[0], 205, MARGINAALIT[1], 35]
+IKKUNAMITAT    = (700,700)
+MARGINAALIT    = (10,10)
+HAKUMITAT      = (MARGINAALIT[0], 205, MARGINAALIT[1], 35)
 HAKULABEL      = 20
 HAKUNAPPI      = 80
-PUUMITAT       = [MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3])]
-TAULUKKOMITAT  = [PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210]
-LATAUSNAPPI    = [TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50]
-ASETUSVALITSIN = [HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 175, HAKUMITAT[3]]
-ASETUSNAPPI    = [ASETUSVALITSIN[0]+ASETUSVALITSIN[2], HAKUMITAT[3]-5, 28, ASETUSVALITSIN[3]]
-TIETOKANTAVALITSIN = [TAULUKKOMITAT[0], TAULUKKOMITAT[2]-HAKUMITAT[3], TAULUKKOMITAT[1], HAKUMITAT[3]]
+PUUMITAT       = (MARGINAALIT[0], HAKUMITAT[1]*2, 2*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3], IKKUNAMITAT[1]-(3*MARGINAALIT[1]+HAKUMITAT[2]+HAKUMITAT[3]))
+TAULUKKOMITAT  = (PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1]-MARGINAALIT[0], PUUMITAT[2], 210)
+LATAUSNAPPI    = (TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50)
+ASETUSVALITSIN = (HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 175, HAKUMITAT[3])
+ASETUSPAIVITYS = (ASETUSVALITSIN[0]+ASETUSVALITSIN[2], HAKUMITAT[3]-5, 28, ASETUSVALITSIN[3])
+# TIETOKANTAVALITSIN = (TAULUKKOMITAT[0], TAULUKKOMITAT[2]-HAKUMITAT[3], TAULUKKOMITAT[1]-ASETUSPAIVITYS[2]-10, HAKUMITAT[3]-ASETUSPAIVITYS[3]-2)
+TIETOKANTAVALITSIN = (ASETUSPAIVITYS[0]+ASETUSPAIVITYS[2], ASETUSPAIVITYS[1], IKKUNAMITAT[0]-ASETUSPAIVITYS[0]-ASETUSPAIVITYS[2]-ASETUSPAIVITYS[2]-MARGINAALIT[0], ASETUSVALITSIN[3])
+TIETOKANTAPAIVITYS = (TIETOKANTAVALITSIN[0]+TIETOKANTAVALITSIN[2], TIETOKANTAVALITSIN[1], ASETUSPAIVITYS[2], ASETUSPAIVITYS[3])
 # Puun muotoiluparametrit
 PAATASOT      = 2
 
@@ -50,7 +52,6 @@ class Kansioelementti(Qt.QStandardItem):
 		st += "\nBiisejä\t{}    ({} + {})".format(lukumaara[0], lukumaara[1], lukumaara[2])
 		st += "\nKansioita\t{}".format(len(self.puu.alikansiot))
 		return(st)
-
 
 class Tiedostoelementti(Qt.QStandardItem):
 	def __init__(self, tiedosto, fonttikoko=10, boldattu=False, vari=(255,255,255)):
@@ -116,7 +117,6 @@ class Tiedostoelementti(Qt.QStandardItem):
 			st += "\t{:04d}-{:02d}-{:02d} / {:02d}:{:02d}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
 
 		return(st)
-
 
 class Vaara_monta(QtWidgets.QMessageBox):
 	'''
@@ -255,6 +255,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.etsi.setGeometry(QtCore.QRect(HAKUMITAT[0]+HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[2]+HAKULABEL, HAKUNAPPI, HAKUMITAT[3]))
 		self.etsi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
 		self.etsi.setFocusPolicy(QtCore.Qt.NoFocus)
+		self.etsi.setToolTip("Lainausmerkit täsmähakuun")
 		self.etsi.setText("Etsi")
 		self.etsi.setShortcut("Return")     # normi
 		# self.Etsi.setShortcut("Enter")    # kp
@@ -275,20 +276,36 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.asetusvalitsin.setGeometry(QtCore.QRect(*ASETUSVALITSIN))
 		self.asetusvalitsin.addItems([a for a in kvak.config.keys() if a != "DEFAULT"])
 		self.asetusvalitsin.currentIndexChanged.connect(self.vaihda_asetuksia)
-		# Lisää uusi asetussetti TODO
+		# Päivitä palvelinvalikoima
 		self.asetusnappi = QtWidgets.QPushButton(self)
 		self.asetusnappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
-		self.asetusnappi.setGeometry(QtCore.QRect(*ASETUSNAPPI))
+		self.asetusnappi.setGeometry(QtCore.QRect(*ASETUSPAIVITYS))
 		self.asetusnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
 		self.asetusnappi.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.asetusnappi.setText("+")
-		self.asetusnappi.clicked.connect(self.lisaa_asetukset)
+		self.asetusnappi.setToolTip("Päivitä palvelinvalikoima")
+		if os.path.exists('.refreshicon.svg'):
+			self.asetusnappi.setIcon(QtGui.QIcon('.refreshicon.svg'))
+		else:
+			self.asetusnappi.setText("p")
+		self.asetusnappi.clicked.connect(self.paivita_asetukset)
 
 		# Tietokantavalitsin
 		self.tietokantavalitsin = QtWidgets.QComboBox(self)
 		self.tietokantavalitsin.setGeometry(QtCore.QRect(*TIETOKANTAVALITSIN))
 		self.tietokantavalitsin.addItems(self.tietokantatiedostot)
 		self.tietokantavalitsin.currentIndexChanged.connect(self.vaihda_tietokantaa)
+		# Päivitä tietokannat
+		self.tietokantanappi = QtWidgets.QPushButton(self)
+		self.tietokantanappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
+		self.tietokantanappi.setGeometry(QtCore.QRect(*TIETOKANTAPAIVITYS))
+		self.tietokantanappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+		self.tietokantanappi.setFocusPolicy(QtCore.Qt.NoFocus)
+		self.tietokantanappi.setToolTip("Päivitä tietokannat")
+		if os.path.exists('.refreshicon.svg'):
+			self.tietokantanappi.setIcon(QtGui.QIcon('.refreshicon.svg'))
+		else:
+			self.tietokantanappi.setText("p")
+		self.tietokantanappi.clicked.connect(self.paivita_tietokannat)
 
 		# Latausnappi
 		self.latausnappi = QtWidgets.QPushButton(self)
@@ -327,6 +344,49 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			biisielementti = Tiedostoelementti(biisi)
 			elementti.appendRow(biisielementti)
 
+	def parsi_hakutermit(self, teksti):
+		'''
+		Parsii hakukentän tekstin hakuargumenteiksi.
+		Tätä kutsutaan ei-tyhjillä stringeillä.
+
+		Teksti splitataan niin että hakutermit on erotettu
+		välilyönneillä, poislukien "lainausmerkeillä ympäröidyt pätkät",
+		jotka muodostavat yksittäisen hakutermin.
+		'''
+		# Rullataan merkki kerrallaan läpi
+		hakutermit = []
+		hipsut_auki = teksti[0] == "\"" # alkaako hipsuilla?
+		termi = ""
+		if not hipsut_auki:
+			termi = teksti[0]
+		i = 1
+		while i < len(teksti):
+			# Rullataan eteenpäin kunnes vastaan tulee välilyönti
+			# jollei olla aloitettu hipsumerkeillä ympäröityä pätkää
+			j = 0
+			while i+j < len(teksti):
+				if kvak.VERBOOSI:
+					print(f"Hakutermi: {termi}")
+				# Vastassa välilyönti eikä hipsut ole auki: katkaistaan
+				if teksti[i+j] == " " and not hipsut_auki:
+					j += 1
+					break
+				# Hipsut on auki ja vastassa hipsu: katkaistaan ja vaihdetaan hipsutilaa
+				if teksti[i+j] == "\"":
+					hipsut_auki = not hipsut_auki
+					j += 1
+					break
+				termi += teksti[i+j]
+				j += 1
+			# Lisätään listaan ja resetoidaan termikasaus
+			if len(termi):
+				if kvak.VERBOOSI:
+					print(f"Lisätään \"{termi}\" hakutermeihin")
+				hakutermit.append(termi)
+			termi = ""
+			i += j
+		return(hakutermit)
+
 	def hae(self):
 		'''
 		Suorita haku.
@@ -336,7 +396,11 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# Sarjan nimi
 		hakutermit = None
 		if self.nimihaku.text() and self.nimihaku.text() != "Vapaahaku":
-			hakutermit = self.nimihaku.text().split(" ")
+			teksti = self.nimihaku.text()
+			# Asiat splitattu välilyönneillä, lainausmerkkien
+			# välissä olevat asiat omia entiteettejään.
+			# Vähän sekamelska niin parsitaan erillisen funktion puolella.
+			hakutermit = self.parsi_hakutermit(teksti)
 		print(f"Vapaahaku termeillä: {hakutermit}")
 		hakudikti = {
 					"vapaahaku":     hakutermit
@@ -439,12 +503,30 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		tietokanta.close()
 		self.kansoita_puu(self.tiedostopuu)
 
-	def lisaa_asetukset(self):
+	def paivita_tietokannat(self):
 		'''
-		Lisää uudet asetukset INI-tiedostoon.
-		Avaa erillisen lisäysikkunan tätä varten.
+		Lataa palvelimelta uudet tietokannat.
 		'''
-		pass
+		self.tietokantatiedostot = []
+		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
+			koodi = kfun.lataa(vaintiedosto=True,\
+							   lahdepalvelin=kvak.ETAPALVELIN,\
+							   lahdepolku=tietokanta,\
+							   kohdepalvelin=None,\
+							   kohdepolku=os.path.basename(tietokanta))
+			if koodi:
+				self.tietokantatiedostot.append(os.path.basename(tietokanta))
+		self.tietokantavalitsin.clear()
+		self.tietokantavalitsin.addItems(self.tietokantatiedostot)
+		self.vaihda_tietokantaa()
+
+	def paivita_asetukset(self):
+		'''
+		Päivitä asetuskattaus (as in, joku kirjoitellut INI-tiedostoon uutta kamaa)
+		'''
+		kvak.paivita_asetukset()
+		self.asetusvalitsin.clear()
+		self.asetusvalitsin.addItems([a for a in kvak.config.keys() if a != "DEFAULT"])
 
 	def vaihda_asetuksia(self):
 		'''
@@ -456,12 +538,19 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# Uusi tietokantatiedostot
 		self.tietokantatiedostot = []
 		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
-			koodi = kfun.lataa(vaintiedosto=True,\
-							   lahdepalvelin=kvak.ETAPALVELIN,\
-							   lahdepolku=tietokanta,\
-							   kohdepalvelin=None,\
-							   kohdepolku=os.path.basename(tietokanta))
-			if koodi:
+			if not os.path.exists(f"./{os.path.basename(tietokanta)}"):
+				if kvak.VERBOOSI:
+					print(f"Tietokantaa ./{os.path.basename(tietokanta)} ei ole ladattu, ladataan.")
+				koodi = kfun.lataa(vaintiedosto=True,\
+								   lahdepalvelin=kvak.ETAPALVELIN,\
+								   lahdepolku=tietokanta,\
+								   kohdepalvelin=None,\
+								   kohdepolku=os.path.basename(tietokanta))
+				if koodi:
+					self.tietokantatiedostot.append(os.path.basename(tietokanta))
+			else:
+				if kvak.VERBOOSI:
+					print(f"Tietokanta ./{os.path.basename(tietokanta)} löytyy jo. Päivitä erikseen jos haluat.")
 				self.tietokantatiedostot.append(os.path.basename(tietokanta))
 		# Uusi tiedostopuu
 		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)

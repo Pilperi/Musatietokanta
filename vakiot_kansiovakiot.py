@@ -40,7 +40,7 @@ elif VERBOOSI:
 	print(f"Lokaali kone: {LOKAALI_KONE}")
 
 # Luetaan asetukset INI-tiedostosta, jos sellainen löytyy.
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(default_section="Pettankone")
 if os.path.exists("./asetukset.ini"):
 	if VERBOOSI:
 		print("Luetaan asetukset .ini-tiedostosta")
@@ -66,6 +66,8 @@ def tarkasta_config():
 	'''
 	global ASETUSKOKOONPANO
 	global config
+	if VERBOOSI:
+		print(f"Asetuskokoonpano {ASETUSKOKOONPANO}")
 	# Tarkistetaan että kokoonpano ylipäätään on configissa
 	if ASETUSKOKOONPANO not in config.keys():
 		config[ASETUSKOKOONPANO] = {}
@@ -213,6 +215,7 @@ def vaihda_asetuskokoonpanoa(nimi):
 		vaihda_vakiot()
 		if VERBOOSI:
 			print("Asetettu")
+		tarkasta_config()
 
 def muokkaa_asetusta(asetus, arvo):
 	'''
@@ -227,3 +230,35 @@ def muokkaa_asetusta(asetus, arvo):
 			print(f"Arvo \"{arvo}\" ei ole käypä arvo asetukselle \"{asetus}\"")
 	elif VERBOOSI:
 		print(f"Asetusta \"{asetus}\" ei ole määritelty.")
+
+def paivita_asetukset():
+	'''
+	Lue INI-tiedosto uusiksi.
+	'''
+	global config
+	# Luetaan asetukset INI-tiedostosta, jos sellainen löytyy.
+	config = configparser.ConfigParser(default_section="Pettankone")
+	if os.path.exists("./asetukset.ini"):
+		if VERBOOSI:
+			print("Luetaan asetukset .ini-tiedostosta")
+		config.read("./asetukset.ini")
+	# Luetaan määrittelyt configista
+	# Mitään ei ole määritelty: laitetaan Pettan
+	if not [a for a in config.keys() if a != "DEFAULT"]:
+		ASETUSKOKOONPANO = "Pettankone"
+		if VERBOOSI:
+			print(f"Tyhjä asetustiedosto, käytetään arvoja {ASETUSKOKOONPANO}")
+		config[ASETUSKOKOONPANO] = {}
+	# Muutoin otetaan eka avain
+	else:
+		ASETUSKOKOONPANO = list(config.keys())[0]
+		if VERBOOSI:
+			print(f"Käytetään arvoja {ASETUSKOKOONPANO}")
+	tarkasta_config()
+	vaihda_vakiot()
+	tallenna_asetukset()
+	# Jos latauskansio on kadonnut jonnekin, tehdään uusiksi
+	if not os.path.exists(BIISIKANSIO):
+		if VERBOOSI:
+			print(f"Latauskansio {BIISIKANSIO} oli kadonnut. Älä tee tämmösii.")
+		os.mkdir(BIISIKANSIO)
