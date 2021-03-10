@@ -77,7 +77,7 @@ class Tiedostoelementti(Qt.QStandardItem):
 	def tiedostopolku(self):
 		'''
 		Antaa tiedoston polun.
-		Vanhempana aina jokin kansio, 
+		Vanhempana aina jokin kansio,
 		haetaan siitä kansiopolku ja tiedostosta tiedostonimi.
 		'''
 		vanhempi = self.parent()
@@ -318,6 +318,11 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# self.latausnappi.setShortcut("Enter")    # kp
 		self.latausnappi.clicked.connect(self.lataa)
 
+		# Sulkemistoiminto ctrl+q
+		self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
+		self.quitSc.activated.connect(QtWidgets.QApplication.instance().quit)
+
+		# Tunnista milloin sovellus on juuri käynnistynyt
 		self.initflag = False
 
 	def kansoita_puu(self, puu, juuri=0, edellinen=None):
@@ -495,13 +500,16 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		Vaihda mitä tietokantaa käytetään pohjana.
 		'''
 		tietokantatiedosto = self.tietokantavalitsin.currentText()
-		if not self.initflag:
-			self.juurisolmu.removeRow(0)
-		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
-		tietokanta = open(tietokantatiedosto, "r")
-		self.tiedostopuu.lue_tiedostosta(tietokanta)
-		tietokanta.close()
-		self.kansoita_puu(self.tiedostopuu)
+		if os.path.exists(tietokantatiedosto):
+			if not self.initflag:
+				self.juurisolmu.removeRow(0)
+			self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
+			tietokanta = open(tietokantatiedosto, "r")
+			self.tiedostopuu.lue_tiedostosta(tietokanta)
+			tietokanta.close()
+			self.kansoita_puu(self.tiedostopuu)
+		elif len(tietokantatiedosto):
+			print(f"Tietokantatiedostoa \"{tietokantatiedosto}\" ei ole.")
 
 	def paivita_tietokannat(self):
 		'''

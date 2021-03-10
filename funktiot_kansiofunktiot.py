@@ -24,8 +24,8 @@ def lataa(vaintiedosto, lahdepalvelin, lahdepolku, kohdepalvelin, kohdepolku):
 		# kohde = "\"{}\"".format(kohdepolku)
 		kohde = "{}".format(kohdepolku)
 
-	print(kansiopolku)
-	print(kohde)
+	print(f"{kansiopolku}->")
+	print(f"->{kohde}")
 	if vaintiedosto:
 		koodi = subprocess.call(["scp", "-T", kansiopolku, kohde])
 	else:
@@ -139,7 +139,7 @@ def lataa_ja_lisaa_soittolistaan(vaintiedosto, lahdepalvelin, lahdepolku, kohdep
 		print(f"Ladataan kansio \n{kansiopolku}\nkohteeseen\n{kohde}")
 		subprocess.Popen([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN])
 		# subprocess.Popen(["scp","-r", "-T", kansiopolku, kohde, *kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN, kohde])
-		
+
 
 #------------Funktiot kansiorakenteiden läpikäymiseen--------------------------
 def paate(tiedosto):
