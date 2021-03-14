@@ -20,9 +20,10 @@ TAULUKKOMITAT  = (PUUMITAT[0]+PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[1
 LATAUSNAPPI    = (TAULUKKOMITAT[0], TAULUKKOMITAT[1], TAULUKKOMITAT[2]+TAULUKKOMITAT[3], 50)
 ASETUSVALITSIN = (HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 175, HAKUMITAT[3])
 ASETUSPAIVITYS = (ASETUSVALITSIN[0]+ASETUSVALITSIN[2], HAKUMITAT[3]-5, 28, ASETUSVALITSIN[3])
-# TIETOKANTAVALITSIN = (TAULUKKOMITAT[0], TAULUKKOMITAT[2]-HAKUMITAT[3], TAULUKKOMITAT[1]-ASETUSPAIVITYS[2]-10, HAKUMITAT[3]-ASETUSPAIVITYS[3]-2)
 TIETOKANTAVALITSIN = (ASETUSPAIVITYS[0]+ASETUSPAIVITYS[2], ASETUSPAIVITYS[1], IKKUNAMITAT[0]-ASETUSPAIVITYS[0]-ASETUSPAIVITYS[2]-ASETUSPAIVITYS[2]-MARGINAALIT[0], ASETUSVALITSIN[3])
 TIETOKANTAPAIVITYS = (TIETOKANTAVALITSIN[0]+TIETOKANTAVALITSIN[2], TIETOKANTAVALITSIN[1], ASETUSPAIVITYS[2], ASETUSPAIVITYS[3])
+LATAUSLABEL    = (LATAUSNAPPI[0], LATAUSNAPPI[1]+LATAUSNAPPI[3]+MARGINAALIT[1], LATAUSNAPPI[2], 20)
+LATAUSLISTA    = (LATAUSLABEL[0], LATAUSLABEL[1]+LATAUSLABEL[3], LATAUSLABEL[2], IKKUNAMITAT[1]-LATAUSLABEL[1]-LATAUSLABEL[3]-MARGINAALIT[1])
 # Puun muotoiluparametrit
 PAATASOT      = 2
 
@@ -52,6 +53,31 @@ class Kansioelementti(Qt.QStandardItem):
 		st += "\nBiisejä\t{}    ({} + {})".format(lukumaara[0], lukumaara[1], lukumaara[2])
 		st += "\nKansioita\t{}".format(len(self.puu.alikansiot))
 		return(st)
+
+	def latauslistateksti(self):
+		'''
+		Anna tekstipätkä jonka voi laittaa latauslistaan
+		edustamaan kyseistä kansiota (ts. kansion nimi)
+		'''
+		st = str(self.puu.kansio)
+		return(st)
+
+	def lataa(self):
+		print("Ladataan ja lisätään soittolistalle.")
+		# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
+		# läimäise loppuun riittävän iso juokseva numero
+		kansionimi = self.puu.kansio
+		i = 0
+		while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
+			print(f"{kansionimi} on jo biisikansiossa")
+			kansionimi = f"{self.puu.kansio}-{i}"
+			i += 1
+		print(f"-> {kansionimi} on vapaa nimi kansiolle")
+		kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
+										  lahdepalvelin=kvak.ETAPALVELIN,
+										  lahdepolku=self.tiedostopolku(),
+										  kohdepalvelin=None,
+										  kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
 
 class Tiedostoelementti(Qt.QStandardItem):
 	def __init__(self, tiedosto, fonttikoko=10, boldattu=False, vari=(255,255,255)):
@@ -115,8 +141,32 @@ class Tiedostoelementti(Qt.QStandardItem):
 		if self.tiedosto.lisayspaiva:
 			pilkottu = self.tiedosto.paivays(self.tiedosto.lisayspaiva)[1]
 			st += "\t{:04d}-{:02d}-{:02d} / {:02d}:{:02d}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
-
 		return(st)
+
+	def latauslistateksti(self):
+		'''
+		Anna tekstipätkä jonka voi laittaa latauslistaan
+		edustamaan kyseistä kansiota (ts. artisti - biisi)
+		'''
+		st = "{} - {}".format(self.tiedosto.esittaja, self.tiedosto.biisinimi)
+		return(st)
+
+	def lataa(self):
+		# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
+		# läimäise loppuun riittävän iso juokseva numero
+		tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.tiedosto.tiedostonimi)
+		tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
+		i = 0
+		while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
+			print(f"{tiedostonimi} on jo biisikansiossa")
+			tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
+			i += 1
+		print(f"-> {tiedostonimi} on vapaa tiedostonimi")
+		kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+										  lahdepalvelin=kvak.ETAPALVELIN,
+										  lahdepolku=self.tiedostopolku(),
+										  kohdepalvelin=None,
+										  kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
 
 class Vaara_monta(QtWidgets.QMessageBox):
 	'''
@@ -137,69 +187,53 @@ class Vaara_monta(QtWidgets.QMessageBox):
 		self.eikyl.setText('Emmää joo')
 		self.exec_()
 
-class Worker(Qt.QRunnable):
+class Latauslista(QtWidgets.QListWidget):
+	def __init__(self, parent=None, asiat=None, mitat=(0,0,100,100)):
+		super().__init__(parent=parent)
+		self.setGeometry(QtCore.QRect(*mitat))
+		self.ladataan = False
+		# Lisää asiat listaan
+		if type(asiat) in (list, tuple):
+			for asia in asiat:
+				self.lisaa(asia)
+
+	def lisaa(self, asia):
+		# Lisää asia ladattavaksi
+		if type(asia) in (Kansioelementti, Tiedostoelementti):
+			listaelementti = QtWidgets.QListWidgetItem()
+			teksti = asia.latauslistateksti()
+			print(f"Lisätään {teksti} latauslistalle")
+			listaelementti.setText(teksti) # tekstimuoto
+			listaelementti.setData(QtCore.Qt.UserRole, asia) # itse asia
+			self.addItem(listaelementti)
+		else:
+			print(f"Asia väärää tyyppiä {type(asia)}")
+
+class Orjasignaalit(QtCore.QObject):
 	'''
-	Worker thread
+	Signaalit oudossa omassa luokassaan koska
+	Qt haluaa olla hankala
 	'''
-	def __init__(self, ikkuna):
-		super(Worker, self).__init__()
-		self.asia = ikkuna.asia
-		self.ikkuna = ikkuna
-		self.setAutoDelete(True)
+	ladattu = QtCore.pyqtSignal() # Tiedosto ladattu
+	valmis  = QtCore.pyqtSignal() # Prosessi valmis
+
+class Latausorja(QtCore.QRunnable):
+	def __init__(self, ladattavat=[]):
+		super().__init__()
+		self.signaalit = Orjasignaalit()
+		self.ladattavat = ladattavat
 
 	def run(self):
-		print("Ladataan ja lisätään soittolistalle.")
-		if type(self.asia) is Kansioelementti:
-			# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
-			# läimäise loppuun riittävän iso juokseva numero
-			kansionimi = self.asia.puu.kansio
-			i = 0
-			while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
-				kansionimi = f"{self.asia.puu.kansio}-{i}"
-				print(kansionimi)
-			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
-                                              lahdepalvelin=kvak.ETAPALVELIN,
-                                              lahdepolku=self.asia.tiedostopolku(),
-                                              kohdepalvelin=None,
-                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
-		else:
-			# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
-			# läimäise loppuun riittävän iso juokseva numero
-			tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.asia.tiedosto.tiedostonimi)
-			tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
-			i = 0
-			print(tiedostonimi)
-			while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
-				tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
-				print(tiedostonimi)
-				i += 1
-			print(f"-> {tiedostonimi}")
-			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-                                              lahdepalvelin=kvak.ETAPALVELIN,
-                                              lahdepolku=self.asia.tiedostopolku(),
-                                              kohdepalvelin=None,
-                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
-		print("Sulje latausikkuna")
-		self.ikkuna.close()
-
-class Latausikkuna(QtWidgets.QMessageBox):
-	def __init__(self, asia, timeout=120):
-		super().__init__()
-		self.setWindowTitle('Ladataan')
-		# self.setStandardButtons(QtWidgets.QMessageBox.Yes)
-		self.setStandardButtons(QtWidgets.QMessageBox.NoButton)
-		self.setText("Ladataan kappaleita")
-		self.asia = asia
-		self.show()
-		self.threadpool = QtCore.QThreadPool()
-		worker = Worker(self)
-		self.threadpool.globalInstance().start(worker)
+		for tiedosto in self.ladattavat:
+			tiedosto.lataa()
+			self.signaalit.ladattu.emit()
+		self.signaalit.valmis.emit()
 
 class Selausikkuna(QtWidgets.QMainWindow):
 	def __init__(self):
 		super().__init__()
 		self.initflag = True
-		self.setStyleSheet("background-color: #31363b")
+		self.setStyleSheet("background-color: #31363b; color: white")
 		# Lataa tietokannat
 		self.tietokantatiedostot = []
 		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
@@ -307,6 +341,15 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			self.tietokantanappi.setText("p")
 		self.tietokantanappi.clicked.connect(self.paivita_tietokannat)
 
+		# Latausjono, elää omassa threadissään
+		self.label_latauslista = QtWidgets.QLabel(self)
+		self.label_latauslista.setGeometry(QtCore.QRect(*LATAUSLABEL))
+		self.label_latauslista.setText("Latauslista:")
+		self.latauslista = Latauslista(self, mitat=LATAUSLISTA)
+		self.threadpool = QtCore.QThreadPool()
+		self.odottaa = []
+		self.lataus_menossa = False
+
 		# Latausnappi
 		self.latausnappi = QtWidgets.QPushButton(self)
 		self.latausnappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
@@ -314,8 +357,6 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.latausnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
 		self.latausnappi.setFocusPolicy(QtCore.Qt.NoFocus)
 		self.latausnappi.setText("Lataa")
-		# self.latausnappi.setShortcut("Return")     # normi
-		# self.latausnappi.setShortcut("Enter")    # kp
 		self.latausnappi.clicked.connect(self.lataa)
 
 		# Sulkemistoiminto ctrl+q
@@ -421,7 +462,6 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		if haettavaa:
 			haku = cb.Hakukriteerit(hakudikti)
 			oli_tuloksia, tulokset = haku.etsi_tietokannasta(self.tiedostopuu)
-			# print(oli_tuloksia)
 			if oli_tuloksia:
 				self.juurisolmu.removeRow(0)
 				self.kansoita_puu(tulokset)
@@ -449,41 +489,42 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			# Ei kovin montaa kappaletta
 			else:
 				latauslupa = True
-			if latauslupa:
-				# latausikkuna = Latausikkuna(asia)
-				print("Ladataan ja lisätään soittolistalle.")
-				# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
-				# läimäise loppuun riittävän iso juokseva numero
-				kansionimi = asia.puu.kansio
-				i = 0
-				while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
-					print(f"{kansionimi} on jo biisikansiossa")
-					kansionimi = f"{asia.puu.kansio}-{i}"
-					i += 1
-				print(f"-> {kansionimi} on vapaa nimi kansiolle")
-				kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
-	                                              lahdepalvelin=kvak.ETAPALVELIN,
-	                                              lahdepolku=asia.tiedostopolku(),
-	                                              kohdepalvelin=None,
-	                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
+		# Yksittäinen kappale aina ok
 		elif type(asia) is Tiedostoelementti:
-			# latausikkuna = Latausikkuna(asia)
-			# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
-			# läimäise loppuun riittävän iso juokseva numero
-			tiedostonimi_runko, tiedostonimi_paate = kfun.paate(asia.tiedosto.tiedostonimi)
-			tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
-			i = 0
-			print(tiedostonimi)
-			while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
-				print(f"{tiedostonimi} on jo biisikansiossa")
-				tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
-				i += 1
-			print(f"-> {tiedostonimi} on vapaa tiedostonimi")
-			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-                                              lahdepalvelin=kvak.ETAPALVELIN,
-                                              lahdepolku=asia.tiedostopolku(),
-                                              kohdepalvelin=None,
-                                              kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
+			latauslupa = True
+		# Mene
+		if latauslupa:
+			self.latauslista.lisaa(asia)
+			self.odottaa.append(asia)
+			if not self.lataus_menossa:
+				self.aloita_lataus()
+
+	def aloita_lataus(self):
+		'''
+		Aloita latausjonon läpikäyminen.
+		'''
+		self.lataus_menossa = True
+		tyolainen = Latausorja(ladattavat=self.odottaa)
+		tyolainen.signaalit.ladattu.connect(self.asia_ladattu)
+		tyolainen.signaalit.valmis.connect(self.tyolainen_valmis)
+		self.threadpool.start(tyolainen)
+		self.odottaa = []
+
+	def asia_ladattu(self):
+		'''
+		Asia on ladattu, poista se latauslistasta.
+		'''
+		asia = self.latauslista.takeItem(0)
+		print("Ladattiin {}".format(asia.text()))
+
+	def tyolainen_valmis(self):
+		'''
+		Työläinen on valmis lataustensa kanssa,
+		aloita uusi rumba. Vain jos on jotain ladattavaa jonossa.
+		'''
+		self.lataus_menossa = False
+		if len(self.odottaa):
+			self.aloita_lataus()
 
 	def nayta_tiedot(self):
 		'''

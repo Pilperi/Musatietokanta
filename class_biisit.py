@@ -390,6 +390,54 @@ class Hakukriteerit:
 			uusipuu = self.tulospuu
 		return(tuloksia, uusipuu)
 
+class Artistipuu():
+	'''
+	Vaihtoehtoversio tiedostopolkupuusta
+	jossa kama on jaoteltu artistinnimen mukaan
+	eikä kansiorakenteen.
+
+	Ottaa sisään Tiedostopuun täydeltä biisejä,
+	lukee näiden metadatasta että mikä esittäjä
+	kyseessä ja lisää biisin kansioineen diktiin
+	artistin nimen alle.
+
+	Diktin rakenne on
+	{Artisti : {
+	           albuminnimi: [(Tiedostopuu, Biisi) kaikille albumin biiseille]}
+               }
+	'''
+	def __init__(self, biisipuu=None):
+		self.artistit = {}
+		if type(biisipuu) is Tiedostopuu:
+			self.kansoita(biisipuu)
+
+	def kansoita(self, biisipuu):
+		'''
+		Täytä dikti annetun Tiedostopuun datalla.
+		'''
+		# Kansion biisit läpi
+		for biisi in [a for a in biisipuu.tiedostot if type(a) is Biisi]:
+			artisti = biisi.esittaja
+			# Kaikki huonosti määritellyt artistit mäppää Noneen
+			if artisti is None or (type(artisti) is str and not len(artisti)):
+				artisti = "None"
+			# Lisää artisti artistidiktiin
+			if artisti not in self.artistit:
+				self.artistit[artisti] = {}
+			albumi  = biisi.albuminimi
+			# Kaikki huonosti määritellyt albuminnimet mäppää Noneen
+			if type(albumi) is str and not len(albumi):
+				albumi = None
+			# Lisää albumi artistin tietoihin
+			if albumi not in self.artistit[artisti]:
+				self.artistit[artisti][albumi] = []
+			# Lisää biisi albumin listaan tuplena jonka perusteella
+			# kyseisen rallatuksen saa ladattua
+			self.artistit[artisti][albumi].append((biisipuu, biisi))
+		# Kansion alikansiot läpi (rekursio)
+		for alikansio in biisipuu.alikansiot:
+			self.kansoita(alikansio)
+
 
 def kirjaa():
 	'''

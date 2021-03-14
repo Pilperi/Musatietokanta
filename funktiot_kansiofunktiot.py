@@ -39,7 +39,7 @@ def siisti_tiedostonimi(nimi):
 	'''
 	Siisti tiedostonimen hankalat merkit scp-yhteensopiviksi,
 	koska ähhh.
-	
+
 	Ottaa:
 	nimi : str
 		Stringi jonka ikävät merkit muokataan vähemmän ikäviksi.
@@ -93,11 +93,9 @@ def lisaa_soittolistaan(tyyppi="kansio", sijainti=kvak.BIISIKANSIO):
 	'''
 	koodi = False
 	if tyyppi == "kansio":
-		print("kansio")
 		koodi = subprocess.call([*kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN, sijainti])
 		print(koodi)
 	elif len(paate(sijainti)[1]) and paate(sijainti)[1].lower() in kvak.MUSATIEDOSTOT:
-		print("kappale")
 		koodi = subprocess.call([*kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN, sijainti])
 		print(koodi)
 	return(koodi)
@@ -133,11 +131,11 @@ def lataa_ja_lisaa_soittolistaan(vaintiedosto, lahdepalvelin, lahdepolku, kohdep
 	skripti_sijainti = os.path.join(os.getcwd(), "lataa_ja_lisaa.sh") # kun tavallinen purkka ei riitä
 	if vaintiedosto and len(paate(kohde)[1]) and paate(kohde)[1].lower() in kvak.MUSATIEDOSTOT:
 		print(f"Ladataan tiedosto \n{kansiopolku}\nkohteeseen\n{kohde}")
-		subprocess.Popen([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN])
+		subprocess.run([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN])
 		# subprocess.Popen(["scp", "-T", kansiopolku, kohde, *kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN, kohde])
 	else:
 		print(f"Ladataan kansio \n{kansiopolku}\nkohteeseen\n{kohde}")
-		subprocess.Popen([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN])
+		subprocess.run([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), kvak.KOMENTO_LISAA_KANSIO_SOITTOLISTAAN])
 		# subprocess.Popen(["scp","-r", "-T", kansiopolku, kohde, *kvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN, kohde])
 
 
