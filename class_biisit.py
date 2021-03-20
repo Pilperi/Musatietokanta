@@ -21,6 +21,29 @@ from class_tiedostopuu import Tiedostopuu
 TULOSTA = True
 #TULOSTA = False
 
+def jarkkaa_biisinumeron_mukaan(lista_biiseja):
+	'''
+	Koeta järjestää listan biisit näiden raitanumeron mukaan.
+	'''
+	if type(lista_biiseja) not in (list, tuple) or any([type(a) is not tuple or len(a) != 2 for a in lista_biiseja]):
+		return(lista_biiseja)
+	fiksut = [] # helposti järkättävissä
+	tyhmat = [] # määrittelemättömät ja "tr01" ymv
+	for biisituple in lista_biiseja:
+		if type(biisituple[1]) is not Biisi or biisituple[1].raita is None:
+			tyhmat.append(biisituple)
+		else:
+			try:
+				raitanumero = int(biisituple[1].raita)
+				biisituple[1].raita = raitanumero
+				fiksut.append(biisituple)
+			except ValueError:
+				tyhmat.append(biisituple)
+	fiksut = sorted(fiksut, key = lambda t: t[1].raita)
+	kansa = fiksut + tyhmat
+	return(kansa)
+
+
 class Biisi():
 	'''
 	Biisitietojen perusluokka.
@@ -350,7 +373,6 @@ class Hakukriteerit:
 			return True
 		return(False)
 
-
 	def etsi_tietokannasta(self, puu, uusipuu=None):
 		'''
 		Etsi annetusta tiedostopuusta kaikki biisit jotka täyttävät
@@ -410,6 +432,7 @@ class Artistipuu():
 		self.artistit = {}
 		if type(biisipuu) is Tiedostopuu:
 			self.kansoita(biisipuu)
+			self.lisaa_feattaajat()
 
 	def kansoita(self, biisipuu):
 		'''
@@ -437,6 +460,30 @@ class Artistipuu():
 		# Kansion alikansiot läpi (rekursio)
 		for alikansio in biisipuu.alikansiot:
 			self.kansoita(alikansio)
+
+	def lisaa_feattaajat(self):
+		'''
+		Täytä artistien albumit sellaisiksi
+		että ne sisältävät myös feattaavat artistit.
+		Skippaa None-sets.
+		'''
+		for artisti in [art for art in self.artistit if art is not None]:
+			# print(f"artisti {artisti}")
+			for albumi in [alb for alb in self.artistit[artisti] if alb is not None]:
+				# print(f"  albumi {albumi}")
+				# Mätsäävännimiset albumit muilta artisteilta
+				for toinenartisti in [tart for tart in self.artistit\
+                  if tart is not None and (tart != artisti)\
+                  and (self.artistit[tart].get(albumi) is not None)\
+                  and not any([biisi[1].esittaja == tart for biisi in self.artistit[artisti][albumi]])]:
+					# print(f"    Myös {toinenartisti} on biisejä albumilla {albumi}")
+					for biisituple in [bt for bt in self.artistit[toinenartisti][albumi] if bt[1].esittaja == toinenartisti]:
+						# print(f"      {biisituple[1].biisinimi}")
+						self.artistit[artisti][albumi].append(biisituple)
+		# Laita lopuksi vielä albumien sisällöt raitanumerojärkkään
+		for artisti in [art for art in self.artistit if art is not None]:
+			for albumi in [alb for alb in self.artistit[artisti] if alb is not None]:
+				self.artistit[artisti][albumi] = jarkkaa_biisinumeron_mukaan(self.artistit[artisti][albumi])
 
 
 def kirjaa():
