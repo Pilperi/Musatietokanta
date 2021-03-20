@@ -34,16 +34,6 @@ NAPPI_LATAA     = (TAULUKKOMITAT[0], TAULUKKOMITAT[1]+TAULUKKOMITAT[3], TAULUKKO
 LATAUSLABEL     = (NAPPI_LATAA[0], NAPPI_LATAA[1]+NAPPI_LATAA[3]+MARGINAALIT[1], NAPPI_LATAA[2], 20)
 LATAUSLISTA     = (LATAUSLABEL[0], LATAUSLABEL[1]+LATAUSLABEL[3], LATAUSLABEL[2], IKKUNAMITAT[1]-LATAUSLABEL[1]-LATAUSLABEL[3]-MARGINAALIT[1])
 
-print(f"LABEL_NIMIHAKU  {LABEL_NIMIHAKU}")
-print(f"KENTTA_NIMIHAKU {KENTTA_NIMIHAKU}")
-print(f"NAPPI_ETSI      {NAPPI_ETSI}")
-print(f"KANSIOMOODI     {KANSIOMOODI}")
-print(f"ARTISTIMOODI    {ARTISTIMOODI}")
-print(f"PUUMITAT        {PUUMITAT}")
-print(f"TAULUKKOMITAT   {TAULUKKOMITAT}")
-print(f"LATAUSLABEL     {LATAUSLABEL}")
-print(f"LATAUSLISTA     {LATAUSLISTA}")
-
 class Kansioelementti(Qt.QStandardItem):
 	def __init__(self, puu, fonttikoko=12, boldattu=False, vari=(255,255,255)):
 		super().__init__()
@@ -678,7 +668,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		albumivari   = (155,155,255)
 		biisivari    = (155,255,155)
 		korostusvari = (255, 0, 255)
-		for artisti in artistipuu.artistit:
+		for artisti in sorted([a for a in artistipuu.artistit], key = lambda t: str(t).lower()):
 			artistielementti = Artistielementti(artistipuu, artisti, vari=artistivari)
 			self.juurisolmu.appendRow(artistielementti)
 			for albumi in artistipuu.artistit[artisti]:
