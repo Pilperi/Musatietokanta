@@ -34,6 +34,12 @@ NAPPI_LATAA     = (TAULUKKOMITAT[0], TAULUKKOMITAT[1]+TAULUKKOMITAT[3], TAULUKKO
 LATAUSLABEL     = (NAPPI_LATAA[0], NAPPI_LATAA[1]+NAPPI_LATAA[3]+MARGINAALIT[1], NAPPI_LATAA[2], 20)
 LATAUSLISTA     = (LATAUSLABEL[0], LATAUSLABEL[1]+LATAUSLABEL[3], LATAUSLABEL[2], IKKUNAMITAT[1]-LATAUSLABEL[1]-LATAUSLABEL[3]-MARGINAALIT[1])
 
+# Värimäärittelyt
+ARTISTIVARI  = (255,255,255)
+ALBUMIVARI   = (155,155,255)
+BIISIVARI    = (155,255,155)
+KOROSTUSVARI = (255, 0, 255)
+
 class Kansioelementti(Qt.QStandardItem):
 	def __init__(self, puu, fonttikoko=12, boldattu=False, vari=(255,255,255)):
 		super().__init__()
@@ -202,6 +208,10 @@ class Artistielementti(Qt.QStandardItem):
 		self.dikti   = {} # {albuminnimi: [Biisejä]}
 		if artistipuu.artistit.get(artisti) is not None:
 			self.dikti = artistipuu.artistit.get(artisti)
+			# Lisää albumit lapsiksi
+			for albumi in artistipuu.artistit[artisti]:
+				albumielementti = Albumielementti(artistipuu, artisti, albumi, vari=ALBUMIVARI)
+				self.appendRow(albumielementti)
 
 	def __str__(self):
 		'''
@@ -276,6 +286,15 @@ class Albumielementti(Qt.QStandardItem):
 		self.biisit  = []      # lista (Tiedostopuu, Biisi) tupleja
 		if artistipuu.artistit.get(artisti) is not None and artistipuu.artistit[artisti].get(albumi) is not None:
 			self.biisit = artistipuu.artistit[artisti][albumi]
+			# Lisää raidat lapsiksi
+			for raitatuple in artistipuu.artistit[artisti][albumi]:
+				boldattu = False
+				vari = BIISIVARI
+				if raitatuple[1].esittaja is not None and raitatuple[1].esittaja == artisti:
+					boldattu = True
+					vari = KOROSTUSVARI
+				raita = Raitaelementti(raitatuple, boldattu=boldattu, vari=vari)
+				self.appendRow(raita)
 
 	def __str__(self):
 		'''
@@ -329,7 +348,10 @@ class Raitaelementti(Qt.QStandardItem):
 		super().__init__()
 		fontti = QtGui.QFont("Open Sans", fonttikoko)
 
-		puuteksti = str(tiedostotuple[1].tiedostonimi)
+		if None not in (tiedostotuple[1].esittaja, tiedostotuple[1].biisinimi):
+			puuteksti = f"{tiedostotuple[1].esittaja} - {tiedostotuple[1].biisinimi}"
+		else:
+			puuteksti = str(tiedostotuple[1].tiedostonimi)
 
 		self.setEditable(False)
 		self.setForeground(QtGui.QColor(*vari))
@@ -664,24 +686,9 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			artistipuu = self.artistipuu
 		elif artistipuu is None:
 			artistipuu = self.artistipuu
-		artistivari  = (255,255,255)
-		albumivari   = (155,155,255)
-		biisivari    = (155,255,155)
-		korostusvari = (255, 0, 255)
 		for artisti in sorted([a for a in artistipuu.artistit], key = lambda t: str(t).lower()):
-			artistielementti = Artistielementti(artistipuu, artisti, vari=artistivari)
+			artistielementti = Artistielementti(artistipuu, artisti, vari=ARTISTIVARI)
 			self.juurisolmu.appendRow(artistielementti)
-			for albumi in artistipuu.artistit[artisti]:
-				albumielementti = Albumielementti(artistipuu, artisti, albumi, vari=albumivari)
-				artistielementti.appendRow(albumielementti)
-				for raitatuple in artistipuu.artistit[artisti][albumi]:
-					boldattu = False
-					vari = biisivari
-					if raitatuple[1].esittaja is not None and raitatuple[1].esittaja == artisti:
-						boldattu = True
-						vari = korostusvari
-					raita = Raitaelementti(raitatuple, boldattu=boldattu, vari=vari)
-					albumielementti.appendRow(raita)
 
 	def parsi_hakutermit(self, teksti):
 		'''
