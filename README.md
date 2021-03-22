@@ -36,6 +36,7 @@ Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa 
 		- `soitin`: K
 
 Asioita joita tarvitsee tehdä:
+
 	[x] Luokkien määritelmät
 		[x] Haluttujen tietojen määrittely
 		[x] Tietojen täyttö tiedostosta
