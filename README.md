@@ -7,10 +7,9 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa paketiksi, joten käyttöohjeet lienee paikallaan:
 
 - Riippuvuudet on aika kevyet (`setup.py` tulossa myöhemmin):
-
   - `Python` 3.8.X
-	- `mutagen`
-	- `PyQt5`
+  - `mutagen`
+  - `PyQt5`
 
 - Kutsuttava tiedosto on (vähemmän yllättäen) `main.py`, käynnistää selausikkunan
 
