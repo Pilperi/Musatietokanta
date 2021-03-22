@@ -6,7 +6,7 @@ Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatie
 
 Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa paketiksi, joten käyttöohjeet lienee paikallaan:
 
-- Riippuvuudet on aika kevyet (setup.py tulossa myöhemmin):
+- Riippuvuudet on aika kevyet (`setup.py` tulossa myöhemmin):
 
   - `Python` 3.8.X
 	- `mutagen`
@@ -33,7 +33,9 @@ Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa 
 		- `tietokantatiedostot etakone`: Missä etäpalvelimen tietokantatiedostot sijaitsee, sieltä kun kiskoo niin tietojen pitäisi olla ajan tasalla. Laittaa oletuksena `pettankoneen` tietokantatiedostojen sijainnit.
 		- `latauskansio`: Kun biisejä ladataan, minne ne sijoitetaan. Mieluiten täyspitkä polku, vaikka defaulttaa `./Biisit`
 		- `raja latausvaroitus`: Jos on lataamassa kovin montaa kappaletta kerralla, ohjelma varoittaa.
-		- `soitin`: K
+		- `soitin`: Komento, jolla musiikinsoitinohjelmaa kutsutaan (defaulttaa `audacious`)
+		- `lisayskomento kappale`: Vipu, jolla soitinohjelman saa lisäämään kappaleen soittolistalle (esim. `audacious -e kappale.mp3` -> `-e`).
+		- `lisayskomento kansio`: Vipu kokonaisen kansion lisäämiseksi soittolistalle (joissain ohjelmissa erillinen).
 
 Asioita joita tarvitsee tehdä:
 
