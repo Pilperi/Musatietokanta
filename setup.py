@@ -18,5 +18,6 @@ setuptools.setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
     ],
-	scripts=["lataa_ja_lisaa.sh"]
+	include_package_data=True,
+    package_data={'': ['./lataa_ja_lisaa.sh']}
 )

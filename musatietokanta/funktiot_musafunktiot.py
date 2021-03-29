@@ -47,7 +47,7 @@ def lataa_ja_lisaa_soittolistaan(vaintiedosto, lahdepalvelin, lahdepolku, kohdep
 	# Paikallinen polku
 	else:
 		kohde = kohdepolku.replace("\"", "\\\"")
-	skripti_sijainti = "lataa_ja_lisaa.sh" # kun tavallinen purkka ei riitä
+	skripti_sijainti = os.path.join(mvak.TYOKANSIO "lataa_ja_lisaa.sh") # kun tavallinen purkka ei riitä
 	if vaintiedosto and len(kfun.paate(kohde)[1]) and kfun.paate(kohde)[1].lower() in mvak.MUSATIEDOSTOT:
 		print(f"Ladataan tiedosto \n{kansiopolku}\nkohteeseen\n{kohde}")
 		subprocess.run([skripti_sijainti, lahdepalvelin, kansiopolku, kohde, str(int(vaintiedosto)), mvak.KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN])

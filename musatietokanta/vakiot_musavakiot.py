@@ -7,6 +7,7 @@ import os
 import sys
 import json
 import configparser
+import pkg_resources
 
 VERBOOSI = any([arg in sys.argv for arg in ("-v", "--verbose", "--verboosi")]) # ei turhaa printtailua
 
@@ -32,6 +33,10 @@ if VERBOOSI:
 if not os.path.exists(TYOKANSIO):
 	try:
 		os.mkdir(TYOKANSIO)
+		# kopsaa bashhiskripti työkansioon
+		f = open(os.path.join(TYOKANSIO, "lataa_ja_lisaa.sh"), "w+")
+		f.write(pkg_resources.resource_string(__name__, 'lataa_ja_lisaa.sh'))
+		f.close()
 	except PermissionError:
 		if VERBOOSI:
 			print("Ei ole oikeuksia tehdä kotikansioon {KOTIKANSIO} työskentelykansiota \"Musatietokanta\" :<")
