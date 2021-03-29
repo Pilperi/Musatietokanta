@@ -1,11 +1,12 @@
 import os
 import sys
 import time
-import class_biisit as cb
-import funktiot_kansiofunktiot as kfun
-import vakiot_kansiovakiot as kvak
-from class_tiedostopuu import Tiedostopuu
 from PyQt5 import Qt, QtCore, QtWidgets, QtGui
+from . import funktiot_musafunktiot as mfun
+from . import vakiot_musavakiot as mvak
+from tiedostohallinta import funktiot_kansiofunktiot as kfun
+from tiedostohallinta.class_tiedostopuu import Tiedostopuu
+from tiedostohallinta import class_biisit as cb
 
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
 
@@ -88,16 +89,16 @@ class Kansioelementti(Qt.QStandardItem):
 		# läimäise loppuun riittävän iso juokseva numero
 		kansionimi = self.puu.kansio
 		i = 0
-		while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
+		while os.path.exists(os.path.join(mvak.BIISIKANSIO, kansionimi)):
 			print(f"{kansionimi} on jo biisikansiossa")
 			kansionimi = f"{self.puu.kansio}-{i}"
 			i += 1
 		print(f"-> {kansionimi} on vapaa nimi kansiolle")
-		kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
-										  lahdepalvelin=kvak.ETAPALVELIN,
+		mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
+										  lahdepalvelin=mvak.ETAPALVELIN,
 										  lahdepolku=self.tiedostopolku(),
 										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(kvak.BIISIKANSIO, kansionimi))
+										  kohdepolku=os.path.join(mvak.BIISIKANSIO, kansionimi))
 
 class Tiedostoelementti(Qt.QStandardItem):
 	def __init__(self, tiedosto, fonttikoko=10, boldattu=False, vari=(255,255,255)):
@@ -177,16 +178,16 @@ class Tiedostoelementti(Qt.QStandardItem):
 		tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.tiedosto.tiedostonimi)
 		tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
 		i = 0
-		while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
+		while os.path.exists(os.path.join(mvak.BIISIKANSIO, tiedostonimi)):
 			print(f"{tiedostonimi} on jo biisikansiossa")
 			tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
 			i += 1
 		print(f"-> {tiedostonimi} on vapaa tiedostonimi")
-		kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=kvak.ETAPALVELIN,
+		mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+										  lahdepalvelin=mvak.ETAPALVELIN,
 										  lahdepolku=self.tiedostopolku(),
 										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
+										  kohdepolku=os.path.join(mvak.BIISIKANSIO, tiedostonimi))
 
 class Artistielementti(Qt.QStandardItem):
 	'''
@@ -249,19 +250,19 @@ class Artistielementti(Qt.QStandardItem):
 		# läimäise loppuun riittävän iso juokseva numero
 		kansionimi = self.artisti.replace("/", "-")
 		i = 0
-		while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
+		while os.path.exists(os.path.join(mvak.BIISIKANSIO, kansionimi)):
 			print(f"{kansionimi} on jo biisikansiossa")
 			kansionimi = f"{self.artisti}-{i}".replace("/", "-")
 			i += 1
 		print(f"-> {kansionimi} on vapaa nimi kansiolle")
-		os.mkdir(os.path.join(kvak.BIISIKANSIO, kansionimi))
+		os.mkdir(os.path.join(mvak.BIISIKANSIO, kansionimi))
 		for albumi in self.dikti:
-			albumikansio = os.path.join(kvak.BIISIKANSIO, kansionimi, albumi)
+			albumikansio = os.path.join(mvak.BIISIKANSIO, kansionimi, albumi)
 			os.mkdir(albumikansio)
 			for tiedostopuu, biisi in self.dikti[albumi]:
 				lahdepolku = os.path.join(tiedostopuu.hae_nykyinen_polku(), biisi.tiedostonimi)
-				kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=kvak.ETAPALVELIN,
+				mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+										  lahdepalvelin=mvak.ETAPALVELIN,
 										  lahdepolku=lahdepolku,
 										  kohdepalvelin=None,
 										  kohdepolku=os.path.join(albumikansio, biisi.tiedostonimi))
@@ -325,17 +326,17 @@ class Albumielementti(Qt.QStandardItem):
 		# läimäise loppuun riittävän iso juokseva numero
 		kansionimi = f"{self.artisti} - {self.albumi}".replace("/", "-")
 		i = 0
-		while os.path.exists(os.path.join(kvak.BIISIKANSIO, kansionimi)):
+		while os.path.exists(os.path.join(mvak.BIISIKANSIO, kansionimi)):
 			print(f"{kansionimi} on jo biisikansiossa")
 			kansionimi = f"{self.artisti} - {self.albumi} {i}".replace("/", "-")
 			i += 1
 		print(f"-> {kansionimi} on vapaa nimi kansiolle")
-		albumikansio = os.path.join(kvak.BIISIKANSIO, kansionimi)
+		albumikansio = os.path.join(mvak.BIISIKANSIO, kansionimi)
 		os.mkdir(albumikansio)
 		for tiedostopuu, biisi in self.biisit:
 			lahdepolku = os.path.join(tiedostopuu.hae_nykyinen_polku(), biisi.tiedostonimi)
-			kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=kvak.ETAPALVELIN,
+			mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+										  lahdepalvelin=mvak.ETAPALVELIN,
 										  lahdepolku=lahdepolku,
 										  kohdepalvelin=None,
 										  kohdepolku=os.path.join(albumikansio, biisi.tiedostonimi))
@@ -414,16 +415,16 @@ class Raitaelementti(Qt.QStandardItem):
 		tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.tiedostotuple[1].tiedostonimi)
 		tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}".replace("/", "-")
 		i = 0
-		while os.path.exists(os.path.join(kvak.BIISIKANSIO, tiedostonimi)):
+		while os.path.exists(os.path.join(mvak.BIISIKANSIO, tiedostonimi)):
 			print(f"{tiedostonimi} on jo biisikansiossa")
 			tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}".replace("/", "-")
 			i += 1
 		print(f"-> {tiedostonimi} on vapaa tiedostonimi")
-		kfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=kvak.ETAPALVELIN,
+		mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
+										  lahdepalvelin=mvak.ETAPALVELIN,
 										  lahdepolku=self.tiedostopolku(),
 										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(kvak.BIISIKANSIO, tiedostonimi))
+										  kohdepolku=os.path.join(mvak.BIISIKANSIO, tiedostonimi))
 
 class Vaara_monta(QtWidgets.QMessageBox):
 	'''
@@ -496,9 +497,9 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.setStyleSheet("background-color: #31363b; color: white")
 		# Lataa tietokannat
 		self.tietokantatiedostot = []
-		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
+		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
 			koodi = kfun.lataa(vaintiedosto=True,\
-							   lahdepalvelin=kvak.ETAPALVELIN,\
+							   lahdepalvelin=mvak.ETAPALVELIN,\
 							   lahdepolku=tietokanta,\
 							   kohdepalvelin=None,\
 							   kohdepolku=os.path.basename(tietokanta))
@@ -585,7 +586,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# Asetusvalitsin
 		self.asetusvalitsin = QtWidgets.QComboBox(self)
 		self.asetusvalitsin.setGeometry(QtCore.QRect(*ASETUSVALITSIN))
-		self.asetusvalitsin.addItems([a for a in kvak.config.keys() if a != "DEFAULT"])
+		self.asetusvalitsin.addItems([a for a in mvak.config.keys() if a != "DEFAULT"])
 		self.asetusvalitsin.currentIndexChanged.connect(self.vaihda_asetuksia)
 		self.asetusvalitsin.setToolTip("Valitse asetuskokoonpano (@ini)")
 		# Päivitä palvelinvalikoima
@@ -713,7 +714,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			# jollei olla aloitettu hipsumerkeillä ympäröityä pätkää
 			j = 0
 			while i+j < len(teksti):
-				if kvak.VERBOOSI:
+				if mvak.VERBOOSI:
 					print(f"Hakutermi: {termi}")
 				# Vastassa välilyönti eikä hipsut ole auki: katkaistaan
 				if teksti[i+j] == " " and not hipsut_auki:
@@ -728,7 +729,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 				j += 1
 			# Lisätään listaan ja resetoidaan termikasaus
 			if len(termi):
-				if kvak.VERBOOSI:
+				if mvak.VERBOOSI:
 					print(f"Lisätään \"{termi}\" hakutermeihin")
 				hakutermit.append(termi)
 			termi = ""
@@ -793,7 +794,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			biiseja = asia.sisallon_maara()
 			latauslupa = False
 			# Monta kappaletta, varmistetaan
-			if biiseja > kvak.VAROITURAJA:
+			if biiseja > mvak.VAROITURAJA:
 				vaaraikkuna = Vaara_monta(biiseja)
 				if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
 					latauslupa = True
@@ -895,9 +896,9 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		Lataa palvelimelta uudet tietokannat.
 		'''
 		self.tietokantatiedostot = []
-		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
+		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
 			koodi = kfun.lataa(vaintiedosto=True,\
-							   lahdepalvelin=kvak.ETAPALVELIN,\
+							   lahdepalvelin=mvak.ETAPALVELIN,\
 							   lahdepolku=tietokanta,\
 							   kohdepalvelin=None,\
 							   kohdepolku=os.path.basename(tietokanta))
@@ -911,9 +912,9 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		Päivitä asetuskattaus (as in, joku kirjoitellut INI-tiedostoon uutta kamaa)
 		'''
-		kvak.paivita_asetukset()
+		mvak.paivita_asetukset()
 		self.asetusvalitsin.clear()
-		self.asetusvalitsin.addItems([a for a in kvak.config.keys() if a != "DEFAULT"])
+		self.asetusvalitsin.addItems([a for a in mvak.config.keys() if a != "DEFAULT"])
 
 	def vaihda_asetuksia(self):
 		'''
@@ -921,22 +922,22 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		# Lue asetussetin nimi ja vaihda vakiot
 		asetussetti = self.asetusvalitsin.currentText()
-		kvak.vaihda_asetuskokoonpanoa(asetussetti)
+		mvak.vaihda_asetuskokoonpanoa(asetussetti)
 		# Uusi tietokantatiedostot
 		self.tietokantatiedostot = []
-		for tietokanta in kvak.ETAPALVELIN_TIETOKANNAT:
+		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
 			if not os.path.exists(f"./{os.path.basename(tietokanta)}"):
-				if kvak.VERBOOSI:
+				if mvak.VERBOOSI:
 					print(f"Tietokantaa ./{os.path.basename(tietokanta)} ei ole ladattu, ladataan.")
 				koodi = kfun.lataa(vaintiedosto=True,\
-								   lahdepalvelin=kvak.ETAPALVELIN,\
+								   lahdepalvelin=mvak.ETAPALVELIN,\
 								   lahdepolku=tietokanta,\
 								   kohdepalvelin=None,\
 								   kohdepolku=os.path.basename(tietokanta))
 				if koodi:
 					self.tietokantatiedostot.append(os.path.basename(tietokanta))
 			else:
-				if kvak.VERBOOSI:
+				if mvak.VERBOOSI:
 					print(f"Tietokanta ./{os.path.basename(tietokanta)} löytyy jo. Päivitä erikseen jos haluat.")
 				self.tietokantatiedostot.append(os.path.basename(tietokanta))
 		# Uusi tiedostopuu
@@ -954,5 +955,5 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		Tallenna asetukset ennen sulkemista.
 		'''
-		kvak.tallenna_asetukset()
+		mvak.tallenna_asetukset()
 		event.accept()

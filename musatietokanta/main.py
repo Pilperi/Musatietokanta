@@ -1,9 +1,12 @@
 import sys
 from PyQt5 import QtWidgets
-from ikkuna_kirjastoselain import Selausikkuna
+from .ikkuna_kirjastoselain import Selausikkuna
 
-if __name__ == "__main__":
+def main():
 	app = QtWidgets.QApplication([])
 	ikkuna = Selausikkuna()
 	ikkuna.show()
 	sys.exit(app.exec_())
+
+if __name__ == "__main__":
+	main()

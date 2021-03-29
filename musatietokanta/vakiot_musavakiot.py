@@ -8,10 +8,7 @@ import sys
 import json
 import configparser
 
-VERBOOSI = "-v" in sys.argv or "--verbose" in sys.argv # ei turhaa printtailua
-
-BUFFERI         = 65536 # tiedostoja RAM:iin 64kb paloissa
-MERKKIBUFFERI   = 4000	# jsoneita RAM:iin 4000 merkin paloissa
+VERBOOSI = any([arg in sys.argv for arg in ("-v", "--verbose", "--verboosi")]) # ei turhaa printtailua
 
 # TBD
 LOKAALIT_MUSIIKIT = []
@@ -27,24 +24,24 @@ KOMENTO_LISAA_KAPPALE_SOITTOLISTAAN = ""
 KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ""
 
 # Tunnista käytettävä kone kotikansion perusteella.
-LOKAALI_KONE = None
-if os.path.exists("/home/pilperi"):
-	LOKAALI_KONE = "Murakumo"
-elif os.path.exists("/home/taira"):
-	LOKAALI_KONE = "pettankone"
-elif os.path.exists("/home/olkkari"):
-	LOKAALI_KONE = "olkkari"
-if VERBOOSI and LOKAALI_KONE is None:
-	print("Käytettävää tietokonetta ei kyetty määrittämään...")
-elif VERBOOSI:
+KOTIKANSIO = os.path.expanduser("~")
+LOKAALI_KONE = os.path.basename(KOTIKANSIO)
+TYOKANSIO = os.path.join(KOTIKANSIO, ".Musatietokanta")
+if VERBOOSI:
 	print(f"Lokaali kone: {LOKAALI_KONE}")
+if not os.path.exists(TYOKANSIO):
+	try:
+		os.mkdir(TYOKANSIO)
+	except PermissionError:
+		if VERBOOSI:
+			print("Ei ole oikeuksia tehdä kotikansioon {KOTIKANSIO} työskentelykansiota \"Musatietokanta\" :<")
 
 # Luetaan asetukset INI-tiedostosta, jos sellainen löytyy.
 config = configparser.ConfigParser(default_section="Pettankone")
-if os.path.exists("./asetukset.ini"):
+if os.path.exists(os.path.join(TYOKANSIO, "asetukset.ini")):
 	if VERBOOSI:
 		print("Luetaan asetukset .ini-tiedostosta")
-	config.read("./asetukset.ini")
+	config.read(os.path.join(TYOKANSIO, "asetukset.ini"))
 # Luetaan määrittelyt configista
 # Mitään ei ole määritelty: laitetaan Pettan
 if not [a for a in config.keys() if a != "DEFAULT"]:
@@ -70,13 +67,15 @@ def tarkasta_config():
 		print(f"Asetuskokoonpano {ASETUSKOKOONPANO}")
 	# Tarkistetaan että kokoonpano ylipäätään on configissa
 	if ASETUSKOKOONPANO not in config.keys():
+		if VERBOOSI:
+			print(f"Asetuskokoonpanoa ei määritelty, aloitetaan tyhjästä (laitetaan osoitteeseen {TYOKANSIO})")
 		config[ASETUSKOKOONPANO] = {}
 	# Tarkistetaan että tarvittavat asiat löytyy initiedostosta. Jos ei, laitetaan oletukset mukaan.
 	# Musakansio uupuu
 	if "musakansiot" not in config[ASETUSKOKOONPANO]:
 		if VERBOOSI:
 			print("Musakansion sijaintia ei määritelty, laitetaan tilapäisarvo")
-		config.set(ASETUSKOKOONPANO, "musakansiot", "[\"/polku/kansioon\"]")
+		config.set(ASETUSKOKOONPANO, "musakansiot", "[\"{}\"]".format(os.path.join(KOTIKANSIO, "Musiikki")))
 	# Sallitut tiedostomuodot uupuu
 	if "sallitut tiedostomuodot" not in config[ASETUSKOKOONPANO]:
 		if VERBOOSI:
@@ -96,7 +95,7 @@ def tarkasta_config():
 	if "tietokantatiedostot lokaalit" not in config[ASETUSKOKOONPANO]:
 		if VERBOOSI:
 			print("Paikallisten tietokantojen sijaintia ei määritelty, laitetaan tilapäisarvo")
-		config.set(ASETUSKOKOONPANO, "tietokantatiedostot lokaalit", "[\"/tietokantakansio/esimerkki.tietokanta\"]")
+		config.set(ASETUSKOKOONPANO, "tietokantatiedostot lokaalit", "[\"{}\"]".format(os.path.join(KOTIKANSIO, "Tietokannat", "musiikit.tietokanta")))
 	# Etätietokannat uupuu
 	if "tietokantatiedostot etakone" not in config[ASETUSKOKOONPANO]:
 		if VERBOOSI:
@@ -107,8 +106,8 @@ def tarkasta_config():
 	# Latauskansio uupuu
 	if "latauskansio" not in config[ASETUSKOKOONPANO]:
 		if VERBOOSI:
-			print("Latausten kohdekansiota ei määritelty, laitetaan \'./Biisit\'")
-		config.set(ASETUSKOKOONPANO, "latauskansio", "./Biisit")
+			print("Latausten kohdekansiota ei määritelty, laitetaan \'{}\'".format(os.path.join(KOTIKANSIO, "Musatietokanta-biisit")))
+		config.set(ASETUSKOKOONPANO, "latauskansio", "{}".format(os.path.join(KOTIKANSIO, "Musatietokanta-biisit")))
 	# Latausmäärän varoitusrajaa ei asetettu
 	if "raja latausvaroitus" not in config[ASETUSKOKOONPANO]:
 		if VERBOOSI:
@@ -171,15 +170,24 @@ def vaihda_vakiot():
 	# Tällaisia asetuksia ei ole, mistä moiset keksit?
 	elif VERBOOSI:
 		print("Asetuskokoonpanoa {ASETUSKOKOONPANO} ei ole määritelty.")
+	# Jos latauskansiota ei ole, yritetään tehdä se
+	if not os.path.exists(BIISIKANSIO):
+		if VERBOOSI:
+			print(f"Latauskansiota {BIISIKANSIO} ei ole, tehdään")
+		try:
+			os.mkdir(BIISIKANSIO)
+		except PermissionError:
+			if VERBOOSI:
+				print(f"Ei ole oikeuksia tehdä latauskansiota {BIISIKANSIO} :<")
 
 def tallenna_asetukset():
 	'''
 	Tallentaa asetukset tiedostoon.
 	'''
 	global config
-	with open('./asetukset.ini', 'w+') as configfile:
+	with open(os.path.join(TYOKANSIO, 'asetukset.ini'), 'w+') as configfile:
 		if VERBOOSI:
-			print("Tallennetaan asetukset tiedostoon")
+			print("Tallennetaan asetukset tiedostoon {}".format(os.path.join(TYOKANSIO, 'asetukset.ini')))
 			for key in config.keys():
 				print(key)
 				for asetus in config[key]:
@@ -191,11 +199,6 @@ def tallenna_asetukset():
 # Tarkasta asetukset
 tarkasta_config()
 vaihda_vakiot()
-# Jos latauskansiota ei ole, yritetään tehdä se
-if not os.path.exists(BIISIKANSIO):
-	if VERBOOSI:
-		print(f"Latauskansiota {BIISIKANSIO} ei ole, tehdään")
-	os.mkdir(BIISIKANSIO)
 # Tallenna
 tallenna_asetukset()
 
@@ -238,10 +241,10 @@ def paivita_asetukset():
 	global config
 	# Luetaan asetukset INI-tiedostosta, jos sellainen löytyy.
 	config = configparser.ConfigParser(default_section="Pettankone")
-	if os.path.exists("./asetukset.ini"):
+	if os.path.exists(os.path.join(TYOKANSIO, "asetukset.ini")):
 		if VERBOOSI:
-			print("Luetaan asetukset .ini-tiedostosta")
-		config.read("./asetukset.ini")
+			print("Luetaan asetukset .ini-tiedostosta {}".format(os.path.join(TYOKANSIO, "asetukset.ini")))
+		config.read(os.path.join(TYOKANSIO, "asetukset.ini"))
 	# Luetaan määrittelyt configista
 	# Mitään ei ole määritelty: laitetaan Pettan
 	if not [a for a in config.keys() if a != "DEFAULT"]:
@@ -260,5 +263,9 @@ def paivita_asetukset():
 	# Jos latauskansio on kadonnut jonnekin, tehdään uusiksi
 	if not os.path.exists(BIISIKANSIO):
 		if VERBOOSI:
-			print(f"Latauskansio {BIISIKANSIO} oli kadonnut. Älä tee tämmösii.")
-		os.mkdir(BIISIKANSIO)
+			print(f"Latauskansiota {BIISIKANSIO} ei ole, tehdään")
+		try:
+			os.mkdir(BIISIKANSIO)
+		except PermissionError:
+			if VERBOOSI:
+				print(f"Ei ole oikeuksia tehdä latauskansiota {BIISIKANSIO} :<")
