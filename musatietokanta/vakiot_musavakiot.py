@@ -28,15 +28,12 @@ KOMENTO_LISAA_KANSIO_SOITTOLISTAAN  = ""
 KOTIKANSIO = os.path.expanduser("~")
 LOKAALI_KONE = os.path.basename(KOTIKANSIO)
 TYOKANSIO = os.path.join(KOTIKANSIO, ".Musatietokanta")
+SIJAINTI_LATAALISAA = os.path.join(os.path.dirname(__file__), "lataa_ja_lisaa.sh")
 if VERBOOSI:
 	print(f"Lokaali kone: {LOKAALI_KONE}")
 if not os.path.exists(TYOKANSIO):
 	try:
 		os.mkdir(TYOKANSIO)
-		# kopsaa bashhiskripti työkansioon
-		f = open(os.path.join(TYOKANSIO, "lataa_ja_lisaa.sh"), "w+")
-		f.write(pkg_resources.resource_string(__name__, 'lataa_ja_lisaa.sh').decode('utf-8'))
-		f.close()
 	except PermissionError:
 		if VERBOOSI:
 			print("Ei ole oikeuksia tehdä kotikansioon {KOTIKANSIO} työskentelykansiota \"Musatietokanta\" :<")
