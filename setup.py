@@ -9,7 +9,7 @@ setuptools.setup(
     long_description=open('README.md').read(),
     packages=setuptools.find_packages(),
     install_requires = [
-        'Musatietokanta @ git+ssh://git@github.com/Pilperi/Musatietokanta.git',
+        'git+https//github.com/Pilperi/Tiedostohallinta',
 		"PyQt5"
     ],
 	python_requires=">=3.8, <4",
