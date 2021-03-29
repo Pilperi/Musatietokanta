@@ -4,14 +4,18 @@ Monasti on ollut erinäisiä ongelmia, kun biisejä on soiteltu ns. tien pääll
 Milloin yhteys katkeaa ja koko kansioselain menee ihan täysin juntturaan, milloin siirtonopeus ei riitä FLAC:ien pyörittämiseen, milloin hakutoiminto kaataa kaiken... Monen moista.
 Tämän vuoksi olisi varmaan varmempaa jos olisi softa, jolla yksi tietokantatiedosto johon kirjattu missä etäkoneen biisit sijaitsevat (sikäläisessä järjestelmässä), ja scp:ttäisi ne mitä tarvitaan paikalliseen väliaikaiskansioon.
 
-Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa paketiksi, joten käyttöohjeet lienee paikallaan:
+Tää alkaa olla jo suht koht käyttökunnossa, joten käyttöohjeet lienee paikallaan:
 
-- Riippuvuudet on aika kevyet (`setup.py` tulossa myöhemmin):
-  - `Python` 3.8.X
-  - `mutagen`
-  - `PyQt5`
+- Riippuvuudet on aika kevyet, ks. `setup.py` jos kinostaa.
 
-- Kutsuttava tiedosto on (vähemmän yllättäen) `main.py`, käynnistää selausikkunan
+- Setit saa asennettua `pip`illä kun laittaa siihen että `pip install git+https://github.com/Pilperi/Musatietokanta`
+
+- Tämän jälkeen sitä voi kutsua pakettina. Käytön kannalta kinostavin tapa on flow
+  ```
+  from musatietokanta import main
+	main.main()
+	```
+	jonka seurauksena se ajaa perusprosessit suhtkoht tuttuun tapaan ja avaa ohjausikkunan. Voit vaikka kirjoittaa skriptitiedostoon ja laittaa sen kutsumiselle jonkun kivan aliaksen.
 
 - Perusflow on se, että ohjelma lataa etäpalvelimelta tietokannat siitä, mitä biisejä siellä sijaitsee missäkin ja rakentaa niistä simuloidun kansiopuun. Sieltä sitten etsitään kappale, albumi tai kansio jonka haluaa ladata ja `Lataa`-nappia painamalla ohjelma kiskoo sen `scp`:llä etäpalvelimelta paikalliselle koneelle ja lisää sitten määritellyn soitinohjelman soittolistalle. Latausjono mukaanlukien meneillään olevat lataus näkyy latausnapin alapuolella ja biisin/kansion/minkälie tiedot yläpuolella.
 
@@ -21,7 +25,7 @@ Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa 
 
 - Käytettävää etäpalvelinta (tai muuten vaan asetuskokoonpanoa) voi vaihtaa lennosta ylärivin vasemmanpuolimmaisesta pudotusvalikosta. Viereisellä päivitysnamiskalla saa ohjelman huomaamaan asetustiedostoon naputellut muutokset (tai ainakin uudet asetuskokoonpanot).
 
-- Asetukset on tiedostossa `asetukset.ini`, ohjelma luo esimerkkiyksilön jos ei moista löydä
+- Asetukset on tiedostossa `~/.Musatietokanta/asetukset.ini`, ohjelma luo esimerkkiyksilön jos ei moista löydä
   - Kenttien pitäisi olla aika itsensäselittäviä, kannattanee käyttää täysiä polkuja tiedostopoluissa
 	  - `[Asetuskokoonpanon nimi]`: Näiden välillä voi vaihdella, läh. lennosta vaihtaa palvelinta
 		- `musakansiot`: lokaalien musien sijainti, tarvii vain jos joskus haluu määrittää omista musista tietokannat (vapaaehtoinen)
@@ -30,7 +34,7 @@ Tää alkaa olla jo suht koht käyttökunnossa, lähinnä tarvii enää muuntaa 
 		- `etapalvelin`: Etäpalvelimen nimi tai ip. Oletuksena `pettankone`.
 		- `tietokantatiedostot lokaalit`: Minne `musakansioista` väsätyt tietokannat dumpataan (vapaaehtoinen)
 		- `tietokantatiedostot etakone`: Missä etäpalvelimen tietokantatiedostot sijaitsee, sieltä kun kiskoo niin tietojen pitäisi olla ajan tasalla. Laittaa oletuksena `pettankoneen` tietokantatiedostojen sijainnit.
-		- `latauskansio`: Kun biisejä ladataan, minne ne sijoitetaan. Mieluiten täyspitkä polku, vaikka defaulttaa `./Biisit`
+		- `latauskansio`: Kun biisejä ladataan, minne ne sijoitetaan. Mieluiten täyspitkä polku, defaulttaa `~/Musatietokanta-biisit/`
 		- `raja latausvaroitus`: Jos on lataamassa kovin montaa kappaletta kerralla, ohjelma varoittaa.
 		- `soitin`: Komento, jolla musiikinsoitinohjelmaa kutsutaan (defaulttaa `audacious`)
 		- `lisayskomento kappale`: Vipu, jolla soitinohjelman saa lisäämään kappaleen soittolistalle (esim. `audacious -e kappale.mp3` -> `-e`).
@@ -64,6 +68,7 @@ Asioita joita tarvitsee tehdä:
 
 	[x] Asetukset erilliseen INI-tiedostoon
 
-	[ ] Paketointi
-	  [ ] Luokkia tarvii muuallakin (synkka), laita ne omaksi paketiksi kansiofunktioiden ymv kanssa
-		[ ] `setup.py` jossa vaatimukset ml. edellämainittu
+	[x] Paketointi
+	  [x] Luokkia tarvii muuallakin (synkka), laita ne omaksi paketiksi kansiofunktioiden ymv kanssa
+		[x] `setup.py` jossa vaatimukset ml. edellämainittu
+		[ ] Jokin helpompi tapa kutsua settejä kuin huudattaa pyyttonilla ne kaksi riviä?
