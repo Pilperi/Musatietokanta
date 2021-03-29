@@ -13,7 +13,7 @@ Tää alkaa olla jo suht koht käyttökunnossa, joten käyttöohjeet lienee paik
 - Tämän jälkeen sitä voi kutsua pakettina. Käytön kannalta kinostavin tapa on flow
   ```
   from musatietokanta import main
-	main.main()
+main.main()
 	```
 	jonka seurauksena se ajaa perusprosessit suhtkoht tuttuun tapaan ja avaa ohjausikkunan. Voit vaikka kirjoittaa skriptitiedostoon ja laittaa sen kutsumiselle jonkun kivan aliaksen.
 
