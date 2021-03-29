@@ -11,11 +11,11 @@ Tää alkaa olla jo suht koht käyttökunnossa, joten käyttöohjeet lienee paik
 - Setit saa asennettua `pip`illä kun laittaa siihen että `pip install git+https://github.com/Pilperi/Musatietokanta`
 
 - Tämän jälkeen sitä voi kutsua pakettina. Käytön kannalta kinostavin tapa on flow
+  ```python
+  from musatietokanta import main
+  main.main()
   ```
- from musatietokanta import main
- main.main()
-	```
-	jonka seurauksena se ajaa perusprosessit suhtkoht tuttuun tapaan ja avaa ohjausikkunan. Voit vaikka kirjoittaa skriptitiedostoon ja laittaa sen kutsumiselle jonkun kivan aliaksen.
+  jonka seurauksena se ajaa perusprosessit suhtkoht tuttuun tapaan ja avaa ohjausikkunan. Voit vaikka kirjoittaa skriptitiedostoon ja laittaa sen kutsumiselle jonkun kivan aliaksen.
 
 - Perusflow on se, että ohjelma lataa etäpalvelimelta tietokannat siitä, mitä biisejä siellä sijaitsee missäkin ja rakentaa niistä simuloidun kansiopuun. Sieltä sitten etsitään kappale, albumi tai kansio jonka haluaa ladata ja `Lataa`-nappia painamalla ohjelma kiskoo sen `scp`:llä etäpalvelimelta paikalliselle koneelle ja lisää sitten määritellyn soitinohjelman soittolistalle. Latausjono mukaanlukien meneillään olevat lataus näkyy latausnapin alapuolella ja biisin/kansion/minkälie tiedot yläpuolella.
 
