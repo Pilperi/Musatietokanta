@@ -35,7 +35,7 @@ if not os.path.exists(TYOKANSIO):
 		os.mkdir(TYOKANSIO)
 		# kopsaa bashhiskripti työkansioon
 		f = open(os.path.join(TYOKANSIO, "lataa_ja_lisaa.sh"), "w+")
-		f.write(pkg_resources.resource_string(__name__, 'lataa_ja_lisaa.sh'))
+		f.write(pkg_resources.resource_string(__name__, 'lataa_ja_lisaa.sh').decode('utf-8'))
 		f.close()
 	except PermissionError:
 		if VERBOOSI:
