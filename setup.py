@@ -9,7 +9,7 @@ setuptools.setup(
     long_description=open('README.md').read(),
     packages=setuptools.find_packages(),
     install_requires = [
-        'git+https//github.com/Pilperi/Tiedostohallinta',
+        'tiedostohallinta @ git+https://github.com/Pilperi/Tiedostohallinta',
 		"PyQt5"
     ],
 	python_requires=">=3.8, <4",
