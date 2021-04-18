@@ -1,8 +1,9 @@
 import setuptools
+import os
 
 setuptools.setup(
     name="musatietokanta",
-    version="2021.03.29",
+    version="2021.04.18",
     url="https://github.com/Pilperi/Musatietokanta",
     author="Pilperi",
     description="Työkalut musatietokantojen kanssa leikkimiseen",
@@ -21,3 +22,25 @@ setuptools.setup(
 	include_package_data=True,
     package_data={'': ['./lataa_ja_lisaa.sh']}
 )
+
+# Kirjoita alias bashrc:hen
+KOTIKANSIO = os.path.expanduser("~")
+bashtiedosto = os.path.join(KOTIKANSIO, ".bashrc")
+bashrivi = f"alias musatietokanta=\'python -m musatietokanta.main\'\n"
+# Katso ettei aliasta ole jo määritetty
+kirjoitetaan = True
+if os.path.exists(bashtiedosto):
+	with open(bashtiedosto, "r") as bf:
+		rivi = bf.readline()
+		while rivi:
+			if rivi == bashrivi:
+				kirjoitetaan = False
+				break
+			rivi = bf.readline()
+else:
+	kirjoitetaan = True
+if kirjoitetaan:
+	print(f"{bashrivi} >> {bashtiedosto}")
+	bf = open(bashtiedosto, "a+")
+	bf.write(bashrivi)
+	bf.close()

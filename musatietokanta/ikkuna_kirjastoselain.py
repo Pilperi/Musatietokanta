@@ -498,13 +498,14 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# Lataa tietokannat
 		self.tietokantatiedostot = []
 		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
+			kohdepolku = os.path.join(mvak.TYOKANSIO, os.path.basename(tietokanta))
 			koodi = kfun.lataa(vaintiedosto=True,\
 							   lahdepalvelin=mvak.ETAPALVELIN,\
 							   lahdepolku=tietokanta,\
 							   kohdepalvelin=None,\
-							   kohdepolku=os.path.basename(tietokanta))
+							   kohdepolku=kohdepolku)
 			if koodi:
-				self.tietokantatiedostot.append(os.path.basename(tietokanta))
+				self.tietokantatiedostot.append(kohdepolku)
 
 		# Määritä puu
 		self.puu = QtWidgets.QTreeView(self)
@@ -605,7 +606,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# Tietokantavalitsin
 		self.tietokantavalitsin = QtWidgets.QComboBox(self)
 		self.tietokantavalitsin.setGeometry(QtCore.QRect(*TIETOKANTAVALITSIN))
-		self.tietokantavalitsin.addItems(self.tietokantatiedostot)
+		self.tietokantavalitsin.addItems([os.path.basename(a) for a in self.tietokantatiedostot])
 		self.tietokantavalitsin.currentIndexChanged.connect(self.vaihda_tietokantaa)
 		self.tietokantavalitsin.setToolTip("Valitse musatietokanta")
 		# Päivitä tietokannat
@@ -873,7 +874,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		Vaihda mitä tietokantaa käytetään pohjana.
 		'''
-		tietokantatiedosto = self.tietokantavalitsin.currentText()
+		tietokantatiedosto = os.path.join(mvak.TYOKANSIO, self.tietokantavalitsin.currentText())
 		if os.path.exists(tietokantatiedosto):
 			if not self.initflag:
 				# self.juurisolmu.removeRow(0)
@@ -905,7 +906,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 			if koodi:
 				self.tietokantatiedostot.append(os.path.basename(tietokanta))
 		self.tietokantavalitsin.clear()
-		self.tietokantavalitsin.addItems(self.tietokantatiedostot)
+		self.tietokantavalitsin.addItems([os.path.basename(a) for a in self.tietokantatiedostot])
 		self.vaihda_tietokantaa()
 
 	def paivita_asetukset(self):
