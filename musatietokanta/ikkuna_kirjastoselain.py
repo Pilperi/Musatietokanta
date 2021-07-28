@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 from PyQt5 import Qt, QtCore, QtWidgets, QtGui
 from . import funktiot_musafunktiot as mfun

@@ -54,6 +54,7 @@ Asioita joita tarvitsee tehdä:
 		[x] Yksi kerrallaan lataaminen
 
 	[x] Soitinohjelman kanssa juttelu (komentorivikäskyt, ez)
+	  [ ] Jumittuu jos lisätään ohjelmaan eikä ohjelma olekaan vielä päällä, pitäis korjata
 
 	[x] Graafinen käyttöliittymä (Qt)
 		[x] Vapaahaku, kattaa
@@ -65,10 +66,12 @@ Asioita joita tarvitsee tehdä:
 		[x] Hallittu Sulkemistoiminto
 		[x] Vaihto Kansio/Alikansio- ja Artisti/Albumi-jaotteluiden välillä (hidas)
 		[x] Latausjonon näyttö
+		[ ] Paikalliset tiedostot (ts. kirjaston määrittely)
 
 	[x] Asetukset erilliseen INI-tiedostoon
+	  [ ] Asetusten säätämiseen joku kiva ikkunaelementti
 
 	[x] Paketointi
 	  [x] Luokkia tarvii muuallakin (synkka), laita ne omaksi paketiksi kansiofunktioiden ymv kanssa
 		[x] `setup.py` jossa vaatimukset ml. edellämainittu
-		[ ] Jokin helpompi tapa kutsua settejä kuin huudattaa pyyttonilla ne kaksi riviä?
+		[x] Jokin helpompi tapa kutsua settejä kuin huudattaa pyyttonilla ne kaksi riviä?
