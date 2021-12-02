@@ -1,11 +1,12 @@
 import os
 import time
+import json
 from PyQt5 import Qt, QtCore, QtWidgets, QtGui
-from . import funktiot_musafunktiot as mfun
-from . import vakiot_musavakiot as mvak
+from musatietokanta import funktiot_musafunktiot as mfun
+from musatietokanta import vakiot_musavakiot as mvak
 from tiedostohallinta import funktiot_kansiofunktiot as kfun
 from tiedostohallinta.class_tiedostopuu import Tiedostopuu
-from tiedostohallinta import class_biisit as cb
+from tiedostohallinta import class_biisi as cb
 
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
 
@@ -498,12 +499,14 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.tietokantatiedostot = []
 		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
 			kohdepolku = os.path.join(mvak.TYOKANSIO, os.path.basename(tietokanta))
+			print(f"Ladataan\n  {tietokanta}\nkohteeseen\n  {kohdepolku}")
 			koodi = kfun.lataa(vaintiedosto=True,\
 							   lahdepalvelin=mvak.ETAPALVELIN,\
 							   lahdepolku=tietokanta,\
 							   kohdepalvelin=None,\
 							   kohdepolku=kohdepolku)
 			if koodi:
+				print("Ladattiin.")
 				self.tietokantatiedostot.append(kohdepolku)
 
 		# Määritä puu
@@ -515,10 +518,14 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.puu.setModel(self.puumalli)
 		self.puu.expand(self.puumalli.index(0,0))
 		# Tietoja inee
-		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
+		self.tiedostopuu = Tiedostopuu()
+		self.tiedostopuu.tiedostotyyppi = "biisi"
 		if len(self.tietokantatiedostot):
 			tietokanta = open(self.tietokantatiedostot[0], "r")
-			self.tiedostopuu.lue_tiedostosta(tietokanta)
+			if kfun.paate(self.tietokantatiedostot[0])[-1] == "json":
+				self.tiedostopuu = Tiedostopuu.diktista(json.load(tietokanta))
+			else:
+				self.tiedostopuu.lue_tiedostosta(tietokanta)
 			tietokanta.close()
 			self.kansoita_puu(self.tiedostopuu)
 		self.puu.selectionModel().selectionChanged.connect(self.nayta_tiedot)

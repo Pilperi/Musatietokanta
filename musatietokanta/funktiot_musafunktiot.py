@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import hashlib
-from . import vakiot_musavakiot as mvak
+from musatietokanta import vakiot_musavakiot as mvak
 from tiedostohallinta import funktiot_kansiofunktiot as kfun
 
 def lisaa_soittolistaan(tyyppi="kansio", sijainti=mvak.BIISIKANSIO):
