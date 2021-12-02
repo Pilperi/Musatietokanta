@@ -7,6 +7,7 @@ from musatietokanta import vakiot_musavakiot as mvak
 from tiedostohallinta import funktiot_kansiofunktiot as kfun
 from tiedostohallinta.class_tiedostopuu import Tiedostopuu
 from tiedostohallinta import class_biisi as cb
+from tiedostohallinta import class_biisiselaus as bs
 
 os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
 
@@ -689,7 +690,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		if artistipuu is None and self.artistipuu is None:
 			print("Jäsennellään tiedostopuu artistien mukaan, saattaa mennä hetki")
-			self.artistipuu = cb.Artistipuu(self.tiedostopuu)
+			self.artistipuu = bs.Artistipuu(self.tiedostopuu)
 			print("Noin.")
 			artistipuu = self.artistipuu
 		elif artistipuu is None:
@@ -770,7 +771,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		haettavaa = any([hakudikti[a] is not None for a in hakudikti])
 		self.puu.setCurrentIndex(self.puu.rootIndex())
 		if haettavaa:
-			haku = cb.Hakukriteerit(hakudikti)
+			haku = bs.Hakukriteerit(hakudikti)
 			oli_tuloksia, tulokset = haku.etsi_tietokannasta(self.tiedostopuu)
 			if oli_tuloksia:
 				self.puumalli.clear()
@@ -778,7 +779,7 @@ class Selausikkuna(QtWidgets.QMainWindow):
 				if self.puumoodi:
 					self.kansoita_puu(tulokset)
 				else:
-					alipuu = cb.Artistipuu(tulokset)
+					alipuu = bs.Artistipuu(tulokset)
 					self.kansoita_puu_artistijako(alipuu)
 				self.puu.setModel(self.puumalli)
 				self.puu.expandAll()
