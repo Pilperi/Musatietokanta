@@ -3,3 +3,5 @@ logi*
 *.ini
 */
 !musatietokanta/
+.directory
+

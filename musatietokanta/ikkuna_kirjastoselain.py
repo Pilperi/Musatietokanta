@@ -519,13 +519,13 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		self.puu.setModel(self.puumalli)
 		self.puu.expand(self.puumalli.index(0,0))
 		# Tietoja inee
-		self.tiedostopuu = Tiedostopuu()
-		self.tiedostopuu.tiedostotyyppi = "biisi"
 		if len(self.tietokantatiedostot):
 			tietokanta = open(self.tietokantatiedostot[0], "r")
 			if kfun.paate(self.tietokantatiedostot[0])[-1] == "json":
 				self.tiedostopuu = Tiedostopuu.diktista(json.load(tietokanta))
 			else:
+				self.tiedostopuu = Tiedostopuu()
+				self.tiedostopuu.tiedostotyyppi = "biisi"
 				self.tiedostopuu.lue_tiedostosta(tietokanta)
 			tietokanta.close()
 			self.kansoita_puu(self.tiedostopuu)
@@ -881,22 +881,31 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		Vaihda mitä tietokantaa käytetään pohjana.
 		'''
-		tietokantatiedosto = os.path.join(mvak.TYOKANSIO, self.tietokantavalitsin.currentText())
-		if os.path.exists(tietokantatiedosto):
+		tietokantatiedosto = os.path.join(
+			mvak.TYOKANSIO,
+			self.tietokantavalitsin.currentText()
+			)
+		if mvak.VERBOOSI:
+			print(f"\nVaihdetaan tietokantaan {tietokantatiedosto}")
+		if os.path.isfile(tietokantatiedosto):
 			if not self.initflag:
 				# self.juurisolmu.removeRow(0)
 				self.puumalli.clear()
 				self.juurisolmu = self.puumalli.invisibleRootItem()
-			self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
 			tietokanta = open(tietokantatiedosto, "r")
-			self.tiedostopuu.lue_tiedostosta(tietokanta)
+			if kfun.paate(tietokantatiedosto)[-1] == "json":
+				self.tiedostopuu = Tiedostopuu.diktista(json.load(tietokanta))
+			else:
+				self.tiedostopuu = Tiedostopuu()
+				self.tiedostopuu.tiedostotyyppi=cb.Biisi
+				self.tiedostopuu.lue_tiedostosta(tietokanta)
 			tietokanta.close()
 			self.artistipuu = None
 			if self.puumoodi:
 				self.kansoita_puu(self.tiedostopuu)
 			else:
 				self.kansoita_puu_artistijako()
-		elif len(tietokantatiedosto):
+		elif self.tietokantavalitsin.currentText():
 			print(f"Tietokantatiedostoa \"{tietokantatiedosto}\" ei ole.")
 
 	def paivita_tietokannat(self):
@@ -905,13 +914,17 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		'''
 		self.tietokantatiedostot = []
 		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
+			tietokantasijainti = os.path.join(
+				mvak.TYOKANSIO,
+				os.path.basename(tietokanta)
+				)
 			koodi = kfun.lataa(vaintiedosto=True,\
 							   lahdepalvelin=mvak.ETAPALVELIN,\
 							   lahdepolku=tietokanta,\
 							   kohdepalvelin=None,\
-							   kohdepolku=os.path.basename(tietokanta))
+							   kohdepolku=tietokantasijainti)
 			if koodi:
-				self.tietokantatiedostot.append(os.path.basename(tietokanta))
+				self.tietokantatiedostot.append(tietokantasijainti)
 		self.tietokantavalitsin.clear()
 		self.tietokantavalitsin.addItems([os.path.basename(a) for a in self.tietokantatiedostot])
 		self.vaihda_tietokantaa()
@@ -934,30 +947,57 @@ class Selausikkuna(QtWidgets.QMainWindow):
 		# Uusi tietokantatiedostot
 		self.tietokantatiedostot = []
 		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
-			if not os.path.exists(f"./{os.path.basename(tietokanta)}"):
+			tietokantasijainti = os.path.join(
+				mvak.TYOKANSIO,
+				os.path.basename(tietokanta)
+				)
+			if not os.path.exists(tietokantasijainti):
 				if mvak.VERBOOSI:
-					print(f"Tietokantaa ./{os.path.basename(tietokanta)} ei ole ladattu, ladataan.")
+					print(
+						f"Tietokantaa ./{tietokantasijainti}"
+						" ei ole ladattu, ladataan."
+						)
 				koodi = kfun.lataa(vaintiedosto=True,\
 								   lahdepalvelin=mvak.ETAPALVELIN,\
 								   lahdepolku=tietokanta,\
 								   kohdepalvelin=None,\
-								   kohdepolku=os.path.basename(tietokanta))
+								   kohdepolku=tietokantasijainti)
 				if koodi:
 					self.tietokantatiedostot.append(os.path.basename(tietokanta))
 			else:
 				if mvak.VERBOOSI:
-					print(f"Tietokanta ./{os.path.basename(tietokanta)} löytyy jo. Päivitä erikseen jos haluat.")
+					print(
+						f"Tietokanta ./{tietokantasijainti}"
+						" löytyy jo. Päivitä erikseen jos haluat."
+						)
 				self.tietokantatiedostot.append(os.path.basename(tietokanta))
 		# Uusi tiedostopuu
-		self.tiedostopuu = Tiedostopuu(tiedostotyyppi=cb.Biisi)
-		if len(self.tietokantatiedostot):
-			tietokanta = open(self.tietokantatiedostot[0], "r")
-			self.tiedostopuu.lue_tiedostosta(tietokanta)
-			tietokanta.close()
-			self.juurisolmu.removeRow(0)
-			self.kansoita_puu(self.tiedostopuu)
-			self.puu.setModel(self.puumalli)
-			self.puu.expand(self.puumalli.index(0,0))
+		if self.tietokantatiedostot:
+			tietokantasijainti = os.path.join(
+				mvak.TYOKANSIO,
+				self.tietokantatiedostot[0]
+				)
+			if os.path.isfile(tietokantasijainti):
+				tietokanta = open(tietokantasijainti, "r")
+				if kfun.paate(tietokantasijainti) == "json":
+					self.tiedostopuu = Tiedostopuu.diktista(
+						json.load(tietokanta)
+						)
+				else:
+					self.tiedostopuu = Tiedostopuu()
+					self.tiedostopuutiedostotyyppi = cb.Biisi
+					self.tiedostopuu.lue_tiedostosta(tietokanta)
+				tietokanta.close()
+				self.juurisolmu.removeRow(0)
+				self.kansoita_puu(self.tiedostopuu)
+				self.puu.setModel(self.puumalli)
+				self.puu.expand(self.puumalli.index(0,0))
+			elif mvak.VERBOOSI:
+				print(f"Ei tietokantatiedostoa {tietokantasijainti}")
+		self.tietokantavalitsin.clear()
+		self.tietokantavalitsin.addItems([
+			os.path.basename(a) for a in self.tietokantatiedostot
+			])
 
 	def closeEvent(self, event):
 		'''
