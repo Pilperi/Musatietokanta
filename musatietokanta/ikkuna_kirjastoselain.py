@@ -1,1007 +1,426 @@
-import os
+'''
+Pääikkunan määritelmät, sisältää tietyn kattauksen muualla
+määriteltyjä käyttöliittymäelementtejä fiksusti aseteltuna.
+'''
+
+import sys
 import time
-import json
-from PyQt5 import Qt, QtCore, QtWidgets, QtGui
-from musatietokanta import funktiot_musafunktiot as mfun
-from musatietokanta import vakiot_musavakiot as mvak
-from tiedostohallinta import funktiot_kansiofunktiot as kfun
+import subprocess
+import logging
+
+# QApplication, QWidget, QLabel, QGridLayout, QPushButton, QMainWindow
+from PyQt5 import QtWidgets, QtGui
+# pyqtSlot, QObject, QThread, pyqtSignal
+from PyQt5 import Qt, QtCore
+
 from tiedostohallinta.class_tiedostopuu import Tiedostopuu
-from tiedostohallinta import class_biisi as cb
-from tiedostohallinta import class_biisiselaus as bs
-
-os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
-
-# Ikkunan asioiden mitat
-IKKUNAMITAT    = (700,700)
-MARGINAALIT    = (10,10)
-HAKUMITAT      = (MARGINAALIT[0], 205, MARGINAALIT[1], 35)
-HAKULABEL      = 20
-HAKUNAPPI      = 80
-ASETUSVALITSIN = (HAKUMITAT[1]+MARGINAALIT[0], HAKUMITAT[3]-5, 175, HAKUMITAT[3])
-ASETUSPAIVITYS = (ASETUSVALITSIN[0]+ASETUSVALITSIN[2], HAKUMITAT[3]-5, 28, ASETUSVALITSIN[3])
-TIETOKANTAVALITSIN = (ASETUSPAIVITYS[0]+ASETUSPAIVITYS[2], ASETUSPAIVITYS[1], IKKUNAMITAT[0]-ASETUSPAIVITYS[0]-ASETUSPAIVITYS[2]-ASETUSPAIVITYS[2]-MARGINAALIT[0], ASETUSVALITSIN[3])
-TIETOKANTAPAIVITYS = (TIETOKANTAVALITSIN[0]+TIETOKANTAVALITSIN[2], TIETOKANTAVALITSIN[1], ASETUSPAIVITYS[2], ASETUSPAIVITYS[3])
-
-# Puun muotoiluparametrit
-PAATASOT      = 2
-
-LABEL_NIMIHAKU  = (HAKUMITAT[0], HAKUMITAT[2], HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[3])
-KENTTA_NIMIHAKU = (HAKUMITAT[0], HAKUMITAT[2]+HAKULABEL, HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[3])
-NAPPI_ETSI      = (HAKUMITAT[0]+HAKUMITAT[1]-HAKUNAPPI, HAKUMITAT[2]+HAKULABEL, HAKUNAPPI, HAKUMITAT[3])
-PUUMITAT        = (KENTTA_NIMIHAKU[0], KENTTA_NIMIHAKU[1]+KENTTA_NIMIHAKU[3], ASETUSPAIVITYS[0]+ASETUSPAIVITYS[2]-KENTTA_NIMIHAKU[0], IKKUNAMITAT[1]-(KENTTA_NIMIHAKU[1]+KENTTA_NIMIHAKU[3]+2*MARGINAALIT[1]+50))
-KANSIOMOODI     = (PUUMITAT[0], PUUMITAT[1]+PUUMITAT[3], int(0.5*PUUMITAT[2]), IKKUNAMITAT[1]-PUUMITAT[1]-PUUMITAT[3]-MARGINAALIT[1])
-ARTISTIMOODI    = (KANSIOMOODI[0]+KANSIOMOODI[2], KANSIOMOODI[1], PUUMITAT[2]-KANSIOMOODI[2], KANSIOMOODI[3])
-TAULUKKOMITAT   = (PUUMITAT[0]+PUUMITAT[2], PUUMITAT[1], IKKUNAMITAT[0]-PUUMITAT[0]-PUUMITAT[2]-MARGINAALIT[0], 210)
-NAPPI_LATAA     = (TAULUKKOMITAT[0], TAULUKKOMITAT[1]+TAULUKKOMITAT[3], TAULUKKOMITAT[2], 50)
-LATAUSLABEL     = (NAPPI_LATAA[0], NAPPI_LATAA[1]+NAPPI_LATAA[3]+MARGINAALIT[1], NAPPI_LATAA[2], 20)
-LATAUSLISTA     = (LATAUSLABEL[0], LATAUSLABEL[1]+LATAUSLABEL[3], LATAUSLABEL[2], IKKUNAMITAT[1]-LATAUSLABEL[1]-LATAUSLABEL[3]-MARGINAALIT[1])
-
-# Värimäärittelyt
-ARTISTIVARI  = (255,255,255)
-ALBUMIVARI   = (155,155,255)
-BIISIVARI    = (155,255,155)
-KOROSTUSVARI = (255, 0, 255)
-
-class Kansioelementti(Qt.QStandardItem):
-	def __init__(self, puu, fonttikoko=12, boldattu=False, vari=(255,255,255)):
-		super().__init__()
-		fontti = QtGui.QFont("Open Sans", fonttikoko)
-		fontti.setBold(boldattu)
-
-		puuteksti = str(puu.kansio)
-
-		self.setEditable(False)
-		self.setForeground(QtGui.QColor(*vari))
-		self.setFont(fontti)
-		self.setText(puuteksti)
-		self.puu = puu
-
-		self.tiedostopolku = self.puu.hae_nykyinen_polku # funktiopointteri
-
-	def __str__(self):
-		'''
-		Kuvaus kansiosta tietoikkunaan.
-		'''
-		st  = "Kansio\t{}".format(self.puu.kansio)
-		st += "\nSyvyydellä\t{}{}".format(self.puu.syvennystaso, "    (juuri)"*(self.puu.syvennystaso==0))
-		lukumaara = self.puu.sisallon_maara()
-		st += "\nBiisejä\t{}    ({} + {})".format(lukumaara[0], lukumaara[1], lukumaara[2])
-		st += "\nKansioita\t{}".format(len(self.puu.alikansiot))
-		return(st)
-
-	def latauslistateksti(self):
-		'''
-		Anna tekstipätkä jonka voi laittaa latauslistaan
-		edustamaan kyseistä kansiota (ts. kansion nimi)
-		'''
-		st = str(self.puu.kansio)
-		return(st)
-
-	def sisallon_maara(self):
-		'''
-		Kerro kuinka monta biisiä kansio pitää
-		yhteensä sisällään.
-		'''
-		return(self.puu.sisallon_maara()[0])
-
-	def lataa(self):
-		print("Ladataan ja lisätään soittolistalle.")
-		# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
-		# läimäise loppuun riittävän iso juokseva numero
-		kansionimi = self.puu.kansio
-		i = 0
-		while os.path.exists(os.path.join(mvak.BIISIKANSIO, kansionimi)):
-			print(f"{kansionimi} on jo biisikansiossa")
-			kansionimi = f"{self.puu.kansio}-{i}"
-			i += 1
-		print(f"-> {kansionimi} on vapaa nimi kansiolle")
-		mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=False,\
-										  lahdepalvelin=mvak.ETAPALVELIN,
-										  lahdepolku=self.tiedostopolku(),
-										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(mvak.BIISIKANSIO, kansionimi))
-
-class Tiedostoelementti(Qt.QStandardItem):
-	def __init__(self, tiedosto, fonttikoko=10, boldattu=False, vari=(255,255,255)):
-		super().__init__()
-		fontti = QtGui.QFont("Open Sans", fonttikoko)
-		fontti.setBold(boldattu)
-
-		# if type(tiedosto) is cb.Biisi and tiedosto.biisinimi is not None:
-		# 	puuteksti = tiedosto.biisinimi
-		# 	if type(tiedosto.raita) is int:
-		# 		puuteksti = "{:02d}. {:s}".format(tiedosto.raita, puuteksti)
-		# else:
-		# 	puuteksti = str(tiedosto.tiedostonimi)
-		puuteksti = str(tiedosto.tiedostonimi)
-
-		self.setEditable(False)
-		self.setForeground(QtGui.QColor(*vari))
-		# self.setForeground(vari)
-		self.setFont(fontti)
-		self.setText(puuteksti)
-		self.tiedosto = tiedosto
-
-	def tiedostopolku(self):
-		'''
-		Antaa tiedoston polun.
-		Vanhempana aina jokin kansio,
-		haetaan siitä kansiopolku ja tiedostosta tiedostonimi.
-		'''
-		vanhempi = self.parent()
-		if vanhempi is not None:
-			kansiopolku  = vanhempi.puu.hae_nykyinen_polku()
-			tiedostonimi = self.tiedosto.tiedostonimi
-			return(os.path.join(kansiopolku, tiedostonimi))
-		return(None)
-
-	def __str__(self):
-		'''
-		Näytä biisin tiedot.
-		'''
-		st = ""
-		st += "{} - {}\n\n\n".format(self.tiedosto.esittaja, self.tiedosto.biisinimi)
-		st += "Esittäjä:"
-		if self.tiedosto.esittaja:
-			st += "\t{}".format(self.tiedosto.esittaja)
-		st += "\nKappale:"
-		if self.tiedosto.biisinimi:
-			st += "\t{}".format(self.tiedosto.biisinimi)
-		st += "\nAlbumi:"
-		if self.tiedosto.albuminimi:
-			st += "\t{}".format(self.tiedosto.albuminimi)
-		st += "\nVuosi:"
-		if self.tiedosto.vuosi:
-			st += "\t{}".format(self.tiedosto.vuosi)
-		st += "\nRaita:"
-		if self.tiedosto.vuosi:
-			st += "\t{}{}".format(self.tiedosto.raita, f"/{self.tiedosto.raitoja}"*(self.tiedosto.raitoja not in [0,None]))
-		st += "\nAlb.es.:"
-		if self.tiedosto.albumiesittaja:
-			st += "\t{}".format(self.tiedosto.albumiesittaja)
-		st += "\nLisätty:"
-		if self.tiedosto.lisayspaiva:
-			pilkottu = self.tiedosto.paivays(self.tiedosto.lisayspaiva)[1]
-			st += "\t{:04d}-{:02d}-{:02d} / {:02d}:{:02d}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
-		return(st)
-
-	def latauslistateksti(self):
-		'''
-		Anna tekstipätkä jonka voi laittaa latauslistaan
-		edustamaan kyseistä kansiota (ts. artisti - biisi)
-		'''
-		st = "{} - {}".format(self.tiedosto.esittaja, self.tiedosto.biisinimi)
-		return(st)
-
-	def lataa(self):
-		# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
-		# läimäise loppuun riittävän iso juokseva numero
-		tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.tiedosto.tiedostonimi)
-		tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}"
-		i = 0
-		while os.path.exists(os.path.join(mvak.BIISIKANSIO, tiedostonimi)):
-			print(f"{tiedostonimi} on jo biisikansiossa")
-			tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}"
-			i += 1
-		print(f"-> {tiedostonimi} on vapaa tiedostonimi")
-		mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=mvak.ETAPALVELIN,
-										  lahdepolku=self.tiedostopolku(),
-										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(mvak.BIISIKANSIO, tiedostonimi))
-
-class Artistielementti(Qt.QStandardItem):
-	'''
-	Data jaoteltuna artisti -> albumi
-	koska nipan tiedostot on ihan miten sattuu.
-	'''
-	def __init__(self, artistipuu, artisti, fonttikoko=12, boldattu=False, vari=(255,255,255)):
-		super().__init__()
-		fontti = QtGui.QFont("Open Sans", fonttikoko)
-		fontti.setBold(boldattu)
-
-		puuteksti = str(artisti)
-
-		self.setEditable(False)
-		self.setForeground(QtGui.QColor(*vari))
-		self.setFont(fontti)
-		self.setText(puuteksti)
-		self.artisti = artisti # str
-		self.dikti   = {} # {albuminnimi: [Biisejä]}
-		if artistipuu.artistit.get(artisti) is not None:
-			self.dikti = artistipuu.artistit.get(artisti)
-			# Lisää albumit lapsiksi
-			for albumi in artistipuu.artistit[artisti]:
-				albumielementti = Albumielementti(artistipuu, artisti, albumi, vari=ALBUMIVARI)
-				self.appendRow(albumielementti)
-
-	def __str__(self):
-		'''
-		Kuvaus kansiosta tietoikkunaan.
-		'''
-		st  = "Artisti\t{}".format(self.artisti)
-		st += "\nAlbumeita\t{}".format(len(self.dikti.keys()))
-		lukumaara = 0
-		for albumi in self.dikti:
-			lukumaara += len(self.dikti[albumi])
-		st += "\nBiisejä\t{}".format(lukumaara)
-		return(st)
-
-	def sisallon_maara(self):
-		'''
-		Kerro kuinka monta biisiä artistin
-		tuotannossa yhteensä on (+albumien feattaajat)
-		'''
-		lukumaara = 0
-		for albumi in self.dikti:
-			lukumaara += len(self.dikti[albumi])
-		return(lukumaara)
-
-	def latauslistateksti(self):
-		'''
-		Anna tekstipätkä jonka voi laittaa latauslistaan
-		edustamaan kyseistä kansiota (ts. kansion nimi)
-		'''
-		st = self.artisti
-		return(st)
-
-	def lataa(self):
-		print("Ladataan ja lisätään soittolistalle.")
-		# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
-		# läimäise loppuun riittävän iso juokseva numero
-		kansionimi = self.artisti.replace("/", "-")
-		i = 0
-		while os.path.exists(os.path.join(mvak.BIISIKANSIO, kansionimi)):
-			print(f"{kansionimi} on jo biisikansiossa")
-			kansionimi = f"{self.artisti}-{i}".replace("/", "-")
-			i += 1
-		print(f"-> {kansionimi} on vapaa nimi kansiolle")
-		os.mkdir(os.path.join(mvak.BIISIKANSIO, kansionimi))
-		for albumi in self.dikti:
-			albumikansio = os.path.join(mvak.BIISIKANSIO, kansionimi, albumi)
-			os.mkdir(albumikansio)
-			for tiedostopuu, biisi in self.dikti[albumi]:
-				lahdepolku = os.path.join(tiedostopuu.hae_nykyinen_polku(), biisi.tiedostonimi)
-				mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=mvak.ETAPALVELIN,
-										  lahdepolku=lahdepolku,
-										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(albumikansio, biisi.tiedostonimi))
-
-class Albumielementti(Qt.QStandardItem):
-	'''
-	Albumi Artistielementin alla.
-	'''
-	def __init__(self, artistipuu, artisti, albumi, fonttikoko=12, boldattu=False, vari=(255,255,255)):
-		super().__init__()
-		fontti = QtGui.QFont("Open Sans", fonttikoko)
-		fontti.setBold(boldattu)
-
-		puuteksti = str(albumi)
-
-		self.setEditable(False)
-		self.setForeground(QtGui.QColor(*vari))
-		self.setFont(fontti)
-		self.setText(puuteksti)
-		self.artisti = artisti # str
-		self.albumi  = albumi  # str
-		self.biisit  = []      # lista (Tiedostopuu, Biisi) tupleja
-		if artistipuu.artistit.get(artisti) is not None and artistipuu.artistit[artisti].get(albumi) is not None:
-			self.biisit = artistipuu.artistit[artisti][albumi]
-			# Lisää raidat lapsiksi
-			for raitatuple in artistipuu.artistit[artisti][albumi]:
-				boldattu = False
-				vari = BIISIVARI
-				if raitatuple[1].esittaja is not None and raitatuple[1].esittaja == artisti:
-					boldattu = True
-					vari = KOROSTUSVARI
-				raita = Raitaelementti(raitatuple, boldattu=boldattu, vari=vari)
-				self.appendRow(raita)
-
-	def __str__(self):
-		'''
-		Kuvaus kansiosta tietoikkunaan.
-		'''
-		st  = "Albumi\t{} - {}".format(self.artisti, self.albumi)
-		st += "\nBiisejä\t{}".format(len(self.biisit))
-		return(st)
-
-	def sisallon_maara(self):
-		'''
-		Kerro kuinka monta biisiä albumi pitää
-		yhteensä sisällään.
-		'''
-		return(len(self.biisit))
-
-	def latauslistateksti(self):
-		'''
-		Anna tekstipätkä jonka voi laittaa latauslistaan
-		edustamaan kyseistä kansiota (ts. kansion nimi)
-		'''
-		st = "{} - {}".format(self.artisti, self.albumi)
-		return(st)
-
-	def lataa(self):
-		print("Ladataan ja lisätään soittolistalle.")
-		# Jos samanniminen kansio on jo biisikansiossa (ex. CD1),
-		# läimäise loppuun riittävän iso juokseva numero
-		kansionimi = f"{self.artisti} - {self.albumi}".replace("/", "-")
-		i = 0
-		while os.path.exists(os.path.join(mvak.BIISIKANSIO, kansionimi)):
-			print(f"{kansionimi} on jo biisikansiossa")
-			kansionimi = f"{self.artisti} - {self.albumi} {i}".replace("/", "-")
-			i += 1
-		print(f"-> {kansionimi} on vapaa nimi kansiolle")
-		albumikansio = os.path.join(mvak.BIISIKANSIO, kansionimi)
-		os.mkdir(albumikansio)
-		for tiedostopuu, biisi in self.biisit:
-			lahdepolku = os.path.join(tiedostopuu.hae_nykyinen_polku(), biisi.tiedostonimi)
-			mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=mvak.ETAPALVELIN,
-										  lahdepolku=lahdepolku,
-										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(albumikansio, biisi.tiedostonimi))
-
-class Raitaelementti(Qt.QStandardItem):
-	'''
-	Raita albumilla.
-	'''
-	def __init__(self, tiedostotuple, boldattu=False, fonttikoko=10, vari=(255,255,255)):
-		super().__init__()
-		fontti = QtGui.QFont("Open Sans", fonttikoko)
-
-		if None not in (tiedostotuple[1].esittaja, tiedostotuple[1].biisinimi):
-			puuteksti = f"{tiedostotuple[1].esittaja} - {tiedostotuple[1].biisinimi}"
-		else:
-			puuteksti = str(tiedostotuple[1].tiedostonimi)
-
-		self.setEditable(False)
-		self.setForeground(QtGui.QColor(*vari))
-		self.setFont(fontti)
-		self.setText(puuteksti)
-		self.tiedostotuple = tiedostotuple
-
-	def tiedostopolku(self):
-		'''
-		Antaa tiedoston polun.
-		Vanhempana aina jokin kansio,
-		haetaan siitä kansiopolku ja tiedostosta tiedostonimi.
-		'''
-		vanhempi = self.parent()
-		kansiopolku  = self.tiedostotuple[0].hae_nykyinen_polku()
-		tiedostonimi = self.tiedostotuple[1].tiedostonimi
-		return(os.path.join(kansiopolku, tiedostonimi))
-
-	def __str__(self):
-		'''
-		Näytä biisin tiedot.
-		'''
-		st = ""
-		st += "{} - {}\n\n\n".format(self.tiedostotuple[1].esittaja, self.tiedostotuple[1].biisinimi)
-		st += "Esittäjä:"
-		if self.tiedostotuple[1].esittaja:
-			st += "\t{}".format(self.tiedostotuple[1].esittaja)
-		st += "\nKappale:"
-		if self.tiedostotuple[1].biisinimi:
-			st += "\t{}".format(self.tiedostotuple[1].biisinimi)
-		st += "\nAlbumi:"
-		if self.tiedostotuple[1].albuminimi:
-			st += "\t{}".format(self.tiedostotuple[1].albuminimi)
-		st += "\nVuosi:"
-		if self.tiedostotuple[1].vuosi:
-			st += "\t{}".format(self.tiedostotuple[1].vuosi)
-		st += "\nRaita:"
-		if self.tiedostotuple[1].vuosi:
-			st += "\t{}{}".format(self.tiedostotuple[1].raita, f"/{self.tiedostotuple[1].raitoja}"*(self.tiedostotuple[1].raitoja not in [0,None]))
-		st += "\nAlb.es.:"
-		if self.tiedostotuple[1].albumiesittaja:
-			st += "\t{}".format(self.tiedostotuple[1].albumiesittaja)
-		st += "\nLisätty:"
-		if self.tiedostotuple[1].lisayspaiva:
-			pilkottu = self.tiedostotuple[1].paivays(self.tiedostotuple[1].lisayspaiva)[1]
-			st += "\t{:04d}-{:02d}-{:02d} / {:02d}:{:02d}".format(pilkottu[0], pilkottu[1], pilkottu[2], pilkottu[3], pilkottu[4])
-		return(st)
-
-	def latauslistateksti(self):
-		'''
-		Anna tekstipätkä jonka voi laittaa latauslistaan
-		edustamaan kyseistä kansiota (ts. artisti - biisi)
-		'''
-		st = "{} - {}".format(self.tiedostotuple[1].esittaja, self.tiedostotuple[1].biisinimi)
-		return(st)
-
-	def lataa(self):
-		# Jos samanniminen biisi on jo biisikansiossa (ex. track01.mp3),
-		# läimäise loppuun riittävän iso juokseva numero
-		tiedostonimi_runko, tiedostonimi_paate = kfun.paate(self.tiedostotuple[1].tiedostonimi)
-		tiedostonimi = f"{tiedostonimi_runko}.{tiedostonimi_paate}".replace("/", "-")
-		i = 0
-		while os.path.exists(os.path.join(mvak.BIISIKANSIO, tiedostonimi)):
-			print(f"{tiedostonimi} on jo biisikansiossa")
-			tiedostonimi = f"{tiedostonimi_runko}-{i}.{tiedostonimi_paate}".replace("/", "-")
-			i += 1
-		print(f"-> {tiedostonimi} on vapaa tiedostonimi")
-		mfun.lataa_ja_lisaa_soittolistaan(vaintiedosto=True,\
-										  lahdepalvelin=mvak.ETAPALVELIN,
-										  lahdepolku=self.tiedostopolku(),
-										  kohdepalvelin=None,
-										  kohdepolku=os.path.join(mvak.BIISIKANSIO, tiedostonimi))
-
-class Vaara_monta(QtWidgets.QMessageBox):
-	'''
-	Danger zone varoitusikkuna,
-	ei klikata 10k biisin kansissa vahingossa "lataa"
-	ja sit jouduta tappamaan ohjelmaa väkisin kun menis ikuisuus.
-	'''
-	def __init__(self, biiseja):
-		super().__init__()
-		self.width  = 500
-		self.height = 500
-		self.setWindowTitle('Näit biisejä on aika monta')
-		self.setText(f'Olet lataamassa {biiseja} biisiä, haluutko oikeesti?')
-		self.setStandardButtons(QtWidgets.QMessageBox.Yes|QtWidgets.QMessageBox.No)
-		self.juu = self.button(QtWidgets.QMessageBox.Yes)
-		self.juu.setText('Kyllä')
-		self.eikyl = self.button(QtWidgets.QMessageBox.No)
-		self.eikyl.setText('Emmää joo')
-		self.exec_()
-
-class Latauslista(QtWidgets.QListWidget):
-	'''
-	Latausjonolista.
-	'''
-	def __init__(self, parent=None, asiat=None, mitat=(0,0,100,100)):
-		super().__init__(parent=parent)
-		self.setGeometry(QtCore.QRect(*mitat))
-		self.ladataan = False
-		# Lisää asiat listaan
-		if type(asiat) in (list, tuple):
-			for asia in asiat:
-				self.lisaa(asia)
-
-	def lisaa(self, asia):
-		# Lisää asia ladattavaksi
-		if type(asia) in (Kansioelementti, Tiedostoelementti, Artistielementti, Albumielementti, Raitaelementti):
-			listaelementti = QtWidgets.QListWidgetItem()
-			teksti = asia.latauslistateksti()
-			print(f"Lisätään {teksti} latauslistalle")
-			listaelementti.setText(teksti) # tekstimuoto
-			listaelementti.setData(QtCore.Qt.UserRole, asia) # itse asia
-			self.addItem(listaelementti)
-		else:
-			print(f"Asia väärää tyyppiä {type(asia)}")
-
-class Orjasignaalit(QtCore.QObject):
-	'''
-	Signaalit oudossa omassa luokassaan koska
-	Qt haluaa olla hankala
-	'''
-	ladattu = QtCore.pyqtSignal() # Tiedosto ladattu
-	valmis  = QtCore.pyqtSignal() # Prosessi valmis
-
-class Latausorja(QtCore.QRunnable):
-	def __init__(self, ladattavat=[]):
-		super().__init__()
-		self.signaalit = Orjasignaalit()
-		self.ladattavat = ladattavat
-
-	def run(self):
-		for tiedosto in self.ladattavat:
-			tiedosto.lataa()
-			self.signaalit.ladattu.emit()
-		self.signaalit.valmis.emit()
-
-class Selausikkuna(QtWidgets.QMainWindow):
-	def __init__(self):
-		super().__init__()
-		self.initflag = True
-		self.setStyleSheet("background-color: #31363b; color: white")
-		# Lataa tietokannat
-		self.tietokantatiedostot = []
-		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
-			kohdepolku = os.path.join(mvak.TYOKANSIO, os.path.basename(tietokanta))
-			print(f"Ladataan\n  {tietokanta}\nkohteeseen\n  {kohdepolku}")
-			koodi = kfun.lataa(vaintiedosto=True,\
-							   lahdepalvelin=mvak.ETAPALVELIN,\
-							   lahdepolku=tietokanta,\
-							   kohdepalvelin=None,\
-							   kohdepolku=kohdepolku)
-			if koodi:
-				print("Ladattiin.")
-				self.tietokantatiedostot.append(kohdepolku)
-
-		# Määritä puu
-		self.puu = QtWidgets.QTreeView(self)
-		self.puu.setGeometry(QtCore.QRect(*PUUMITAT))
-		self.puu.setHeaderHidden(True)
-		self.puumalli = Qt.QStandardItemModel()
-		self.juurisolmu = self.puumalli.invisibleRootItem()
-		self.puu.setModel(self.puumalli)
-		self.puu.expand(self.puumalli.index(0,0))
-		# Tietoja inee
-		if len(self.tietokantatiedostot):
-			tietokanta = open(self.tietokantatiedostot[0], "r")
-			if kfun.paate(self.tietokantatiedostot[0])[-1] == "json":
-				self.tiedostopuu = Tiedostopuu.diktista(json.load(tietokanta))
-			else:
-				self.tiedostopuu = Tiedostopuu()
-				self.tiedostopuu.tiedostotyyppi = "biisi"
-				self.tiedostopuu.lue_tiedostosta(tietokanta)
-			tietokanta.close()
-			self.kansoita_puu(self.tiedostopuu)
-		self.puu.selectionModel().selectionChanged.connect(self.nayta_tiedot)
-		self.artistipuu = None
-
-		# Napit joilla vaihdellaan puumoodien välillä:
-		# Kansio/Alikansio/Biisi
-		self.nappi_kansiorakenne = QtWidgets.QPushButton(self)
-		self.nappi_kansiorakenne.setGeometry(QtCore.QRect(*KANSIOMOODI))
-		self.nappi_kansiorakenne.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-		self.nappi_kansiorakenne.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.nappi_kansiorakenne.setToolTip("Jäsentele kansiorakenteen mukaan")
-		self.nappi_kansiorakenne.setText("Kansio/Alikansio")
-		self.nappi_kansiorakenne.clicked.connect(self.vaihda_kansiorakenteeseen)
-		# Artisti/Albumi/Biisi
-		self.nappi_artistirakenne = QtWidgets.QPushButton(self)
-		self.nappi_artistirakenne.setGeometry(QtCore.QRect(*ARTISTIMOODI))
-		self.nappi_artistirakenne.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-		self.nappi_artistirakenne.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.nappi_artistirakenne.setToolTip("Jäsentele kansiorakenteen mukaan")
-		self.nappi_artistirakenne.setText("Artisti/Albumi")
-		self.nappi_artistirakenne.clicked.connect(self.vaihda_artistirakenteeseen)
-		self.puumoodi = True # True: kansiorakenne, False: artistimoodi
-
-		self.setWindowTitle("Musiikkikirjastoselain")
-		self.resize(*IKKUNAMITAT)
-		self.setMinimumSize(*IKKUNAMITAT)
-		self.setMaximumSize(*IKKUNAMITAT)
-
-		# Tekstikentän otsikkoteksti
-		self.label_nimihaku = QtWidgets.QLabel(self)
-		self.label_nimihaku.setGeometry(QtCore.QRect(*LABEL_NIMIHAKU))
-		self.label_nimihaku.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
-		self.label_nimihaku.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
-		self.label_nimihaku.setText("Vapaahaku")
-
-		# Tekstikenttä
-		self.nimihaku = QtWidgets.QLineEdit(self)
-		self.nimihaku.setGeometry(QtCore.QRect(*KENTTA_NIMIHAKU))
-		self.nimihaku.setObjectName("nimihaku")
-		self.nimihaku.setClearButtonEnabled(True)
-		self.nimihaku.setText("Vapaahaku")
-		self.nimihaku.selectAll()
-		self.nimihaku.setCompleter(None)
-		self.nimihaku.setToolTip("Täsmähaku lainausmerkeillä")
-
-		# Hakunappi
-		self.etsi = QtWidgets.QPushButton(self)
-		self.etsi.setGeometry(QtCore.QRect(*NAPPI_ETSI))
-		self.etsi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-		self.etsi.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.etsi.setText("Etsi")
-		self.etsi.setShortcut("Return")
-		self.etsi.clicked.connect(self.hae)
-
-		# self.taulukko = QtWidgets.QLineEdit(self)
-		self.taulukko = QtWidgets.QTextEdit(self)
-		self.taulukko.setGeometry(QtCore.QRect(*TAULUKKOMITAT))
-		self.taulukko.setText("")
-		self.taulukko.setReadOnly(True)
-		self.taulukko.setAlignment(QtCore.Qt.AlignTop)
-		self.taulukko.setWordWrapMode(0)
-		self.taulukko.setStyleSheet("background-color: #31363b")
-
-		# Asetusvalitsin
-		self.asetusvalitsin = QtWidgets.QComboBox(self)
-		self.asetusvalitsin.setGeometry(QtCore.QRect(*ASETUSVALITSIN))
-		self.asetusvalitsin.addItems([a for a in mvak.config.keys() if a != "DEFAULT"])
-		self.asetusvalitsin.currentIndexChanged.connect(self.vaihda_asetuksia)
-		self.asetusvalitsin.setToolTip("Valitse asetuskokoonpano (@ini)")
-		# Päivitä palvelinvalikoima
-		self.asetusnappi = QtWidgets.QPushButton(self)
-		self.asetusnappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
-		self.asetusnappi.setGeometry(QtCore.QRect(*ASETUSPAIVITYS))
-		self.asetusnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-		self.asetusnappi.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.asetusnappi.setToolTip("Päivitä palvelinvalikoima")
-		if os.path.exists('.refreshicon.svg'):
-			self.asetusnappi.setIcon(QtGui.QIcon('.refreshicon.svg'))
-		else:
-			self.asetusnappi.setText("p")
-		self.asetusnappi.clicked.connect(self.paivita_asetukset)
-
-		# Tietokantavalitsin
-		self.tietokantavalitsin = QtWidgets.QComboBox(self)
-		self.tietokantavalitsin.setGeometry(QtCore.QRect(*TIETOKANTAVALITSIN))
-		self.tietokantavalitsin.addItems([os.path.basename(a) for a in self.tietokantatiedostot])
-		self.tietokantavalitsin.currentIndexChanged.connect(self.vaihda_tietokantaa)
-		self.tietokantavalitsin.setToolTip("Valitse musatietokanta")
-		# Päivitä tietokannat
-		self.tietokantanappi = QtWidgets.QPushButton(self)
-		self.tietokantanappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
-		self.tietokantanappi.setGeometry(QtCore.QRect(*TIETOKANTAPAIVITYS))
-		self.tietokantanappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-		self.tietokantanappi.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.tietokantanappi.setToolTip("Päivitä tietokannat")
-		if os.path.exists('.refreshicon.svg'):
-			self.tietokantanappi.setIcon(QtGui.QIcon('.refreshicon.svg'))
-		else:
-			self.tietokantanappi.setText("p")
-		self.tietokantanappi.clicked.connect(self.paivita_tietokannat)
-
-		# Latausjono, elää omassa threadissään
-		self.label_latauslista = QtWidgets.QLabel(self)
-		self.label_latauslista.setGeometry(QtCore.QRect(*LATAUSLABEL))
-		self.label_latauslista.setText("Latauslista:")
-		self.latauslista = Latauslista(self, mitat=LATAUSLISTA)
-		self.threadpool = QtCore.QThreadPool()
-		self.odottaa = []
-		self.lataus_menossa = False
-
-		# Latausnappi
-		self.latausnappi = QtWidgets.QPushButton(self)
-		self.latausnappi.setStyleSheet("background-color: #373c41; color: white; font-weight: bold")
-		self.latausnappi.setGeometry(QtCore.QRect(*NAPPI_LATAA))
-		self.latausnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-		self.latausnappi.setFocusPolicy(QtCore.Qt.NoFocus)
-		self.latausnappi.setText("Lataa")
-		self.latausnappi.clicked.connect(self.lataa)
-
-		# Sulkemistoiminto ctrl+q
-		self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
-		self.quitSc.activated.connect(QtWidgets.QApplication.instance().quit)
-
-		# Tunnista milloin sovellus on juuri käynnistynyt
-		self.initflag = False
-
-	def kansoita_puu(self, puu, juuri=0, edellinen=None):
-		'''
-		Täytä puu annetun Tiedostopuun sisällöllä,
-		boldaa ylimpien tasojen elementit.
-		'''
-		self.puumoodi = True # kerro muillekin palikoille
-		fkoko = 10
-		if juuri < PAATASOT:
-			fkoko = 12
-
-		# Elementin väri
-		r = min(255,max(255+(-1+2*(juuri%2))*juuri*25, 0))
-		g = min(255,max(255+(1-2*(juuri%2))*juuri*25, 0))
-		b = min(255,max(255-juuri*25, 0))
-		elementti = Kansioelementti(puu, fonttikoko=fkoko, vari=(r, g, b))
-		if edellinen is None:
-			edellinen = self.juurisolmu
-		edellinen.appendRow(elementti)
-		for alikansio in puu.alikansiot:
-			self.kansoita_puu(alikansio, juuri+1, elementti)
-		sortatutbiisit = sorted(puu.tiedostot, key = lambda t: t.tiedostonimi)
-		for biisi in sortatutbiisit:
-			biisielementti = Tiedostoelementti(biisi)
-			elementti.appendRow(biisielementti)
-
-	def kansoita_puu_artistijako(self, artistipuu=None):
-		'''
-		Täytä puu annetun Artistipuun sisällöllä.
-		Juuri
-		 |-Artisti
-		   |-Albumi
-		     |-Biisi albumilla
-			 |-Biisi albumilla
-		'''
-		if artistipuu is None and self.artistipuu is None:
-			print("Jäsennellään tiedostopuu artistien mukaan, saattaa mennä hetki")
-			self.artistipuu = bs.Artistipuu(self.tiedostopuu)
-			print("Noin.")
-			artistipuu = self.artistipuu
-		elif artistipuu is None:
-			artistipuu = self.artistipuu
-		for artisti in sorted([a for a in artistipuu.artistit], key = lambda t: str(t).lower()):
-			artistielementti = Artistielementti(artistipuu, artisti, vari=ARTISTIVARI)
-			self.juurisolmu.appendRow(artistielementti)
-
-	def parsi_hakutermit(self, teksti):
-		'''
-		Parsii hakukentän tekstin hakuargumenteiksi.
-		Tätä kutsutaan ei-tyhjillä stringeillä.
-
-		Teksti splitataan niin että hakutermit on erotettu
-		välilyönneillä, poislukien "lainausmerkeillä ympäröidyt pätkät",
-		jotka muodostavat yksittäisen hakutermin.
-		'''
-		if len(teksti) == 1:
-			return([teksti])
-		# Rullataan merkki kerrallaan läpi
-		hakutermit = []
-		hipsut_auki = teksti[0] == "\"" # alkaako hipsuilla?
-		termi = ""
-		if not hipsut_auki:
-			termi = teksti[0]
-		i = 1
-		while i < len(teksti):
-			# Rullataan eteenpäin kunnes vastaan tulee välilyönti
-			# jollei olla aloitettu hipsumerkeillä ympäröityä pätkää
-			j = 0
-			while i+j < len(teksti):
-				if mvak.VERBOOSI:
-					print(f"Hakutermi: {termi}")
-				# Vastassa välilyönti eikä hipsut ole auki: katkaistaan
-				if teksti[i+j] == " " and not hipsut_auki:
-					j += 1
-					break
-				# Hipsut on auki ja vastassa hipsu: katkaistaan ja vaihdetaan hipsutilaa
-				if teksti[i+j] == "\"":
-					hipsut_auki = not hipsut_auki
-					j += 1
-					break
-				termi += teksti[i+j]
-				j += 1
-			# Lisätään listaan ja resetoidaan termikasaus
-			if len(termi):
-				if mvak.VERBOOSI:
-					print(f"Lisätään \"{termi}\" hakutermeihin")
-				hakutermit.append(termi)
-			termi = ""
-			i += j
-		return(hakutermit)
-
-	def hae(self):
-		'''
-		Suorita haku.
-		'''
-		hakudikti = {}
-		oli_tuloksia = False
-		# Sarjan nimi
-		hakutermit = None
-		if self.nimihaku.text() and self.nimihaku.text() != "Vapaahaku":
-			teksti = self.nimihaku.text()
-			# Asiat splitattu välilyönneillä, lainausmerkkien
-			# välissä olevat asiat omia entiteettejään.
-			# Vähän sekamelska niin parsitaan erillisen funktion puolella.
-			hakutermit = self.parsi_hakutermit(teksti)
-		print(f"Vapaahaku termeillä: {hakutermit}")
-		hakudikti = {
-					"vapaahaku":     hakutermit
-					# "ehtona_ja":     False,
-					# "artistissa":    artistinnimessa,
-					# "biisissa":      artistinnimessa,
-					# "albumissa":     artistinnimessa,
-					# "tiedostossa":   artistinnimessa
-					# "raitanumero":   (1,3)
-					}
-		haettavaa = any([hakudikti[a] is not None for a in hakudikti])
-		self.puu.setCurrentIndex(self.puu.rootIndex())
-		if haettavaa:
-			haku = bs.Hakukriteerit(hakudikti)
-			oli_tuloksia, tulokset = haku.etsi_tietokannasta(self.tiedostopuu)
-			if oli_tuloksia:
-				self.puumalli.clear()
-				self.juurisolmu = self.puumalli.invisibleRootItem()
-				if self.puumoodi:
-					self.kansoita_puu(tulokset)
-				else:
-					alipuu = bs.Artistipuu(tulokset)
-					self.kansoita_puu_artistijako(alipuu)
-				self.puu.setModel(self.puumalli)
-				self.puu.expandAll()
-		if not haettavaa or not oli_tuloksia:
-			self.puumalli.clear()
-			self.juurisolmu = self.puumalli.invisibleRootItem()
-			if self.puumoodi:
-				self.kansoita_puu(self.tiedostopuu)
-				self.puu.expand(self.puumalli.index(0,0))
-			else:
-				self.kansoita_puu_artistijako()
-
-	def lataa(self):
-		'''
-		Lataa valittu asia.
-		'''
-		asia = self.puumalli.itemFromIndex(self.puu.currentIndex())
-		latauslupa = False
-		if type(asia) in [Kansioelementti, Artistielementti, Albumielementti]:
-			biiseja = asia.sisallon_maara()
-			latauslupa = False
-			# Monta kappaletta, varmistetaan
-			if biiseja > mvak.VAROITURAJA:
-				vaaraikkuna = Vaara_monta(biiseja)
-				if vaaraikkuna.clickedButton() is vaaraikkuna.juu:
-					latauslupa = True
-			# Ei kovin montaa kappaletta
-			else:
-				latauslupa = True
-		# Yksittäinen kappale aina ok
-		elif type(asia) in [Tiedostoelementti, Raitaelementti]:
-			latauslupa = True
-		# Mene
-		if latauslupa:
-			self.latauslista.lisaa(asia)
-			self.odottaa.append(asia)
-			if not self.lataus_menossa:
-				self.aloita_lataus()
-
-	def aloita_lataus(self):
-		'''
-		Aloita latausjonon läpikäyminen.
-		'''
-		self.lataus_menossa = True
-		tyolainen = Latausorja(ladattavat=self.odottaa)
-		tyolainen.signaalit.ladattu.connect(self.asia_ladattu)
-		tyolainen.signaalit.valmis.connect(self.tyolainen_valmis)
-		self.threadpool.start(tyolainen)
-		self.odottaa = []
-
-	def asia_ladattu(self):
-		'''
-		Asia on ladattu, poista se latauslistasta.
-		'''
-		asia = self.latauslista.takeItem(0)
-		if asia is not None:
-			print("Ladattiin {}".format(asia.text()))
-
-	def tyolainen_valmis(self):
-		'''
-		Työläinen on valmis lataustensa kanssa,
-		aloita uusi rumba. Vain jos on jotain ladattavaa jonossa.
-		'''
-		self.lataus_menossa = False
-		if len(self.odottaa):
-			self.aloita_lataus()
-
-	def nayta_tiedot(self):
-		'''
-		Näytä valitun biisin tai kansion tiedot.
-		'''
-		st = ""
-		if type(self.puumalli.itemFromIndex(self.puu.currentIndex())) in [Kansioelementti, Tiedostoelementti, Artistielementti, Albumielementti, Raitaelementti]:
-			st = str(self.puumalli.itemFromIndex(self.puu.currentIndex()))
-			print(st)
-		self.taulukko.setText(st)
-
-	def vaihda_kansiorakenteeseen(self):
-		'''
-		Vaihda selausmoodi kansiorakenteeseen.
-		'''
-		self.puumoodi = True
-		# self.puumalli.clear()
-		# self.juurisolmu = self.puumalli.invisibleRootItem()
-		self.hae()
-		# self.kansoita_puu(self.tiedostopuu)
-
-	def vaihda_artistirakenteeseen(self):
-		'''
-		Vaihda selausmoodi kansiorakenteeseen.
-		'''
-		self.puumoodi = False
-		# self.puumalli.clear()
-		# self.juurisolmu = self.puumalli.invisibleRootItem()
-		self.hae()
-		# self.kansoita_puu_artistijako(self.artistipuu)
-
-	def vaihda_tietokantaa(self):
-		'''
-		Vaihda mitä tietokantaa käytetään pohjana.
-		'''
-		tietokantatiedosto = os.path.join(
-			mvak.TYOKANSIO,
-			self.tietokantavalitsin.currentText()
-			)
-		if mvak.VERBOOSI:
-			print(f"\nVaihdetaan tietokantaan {tietokantatiedosto}")
-		if os.path.isfile(tietokantatiedosto):
-			if not self.initflag:
-				# self.juurisolmu.removeRow(0)
-				self.puumalli.clear()
-				self.juurisolmu = self.puumalli.invisibleRootItem()
-			tietokanta = open(tietokantatiedosto, "r")
-			if kfun.paate(tietokantatiedosto)[-1] == "json":
-				self.tiedostopuu = Tiedostopuu.diktista(json.load(tietokanta))
-			else:
-				self.tiedostopuu = Tiedostopuu()
-				self.tiedostopuu.tiedostotyyppi=cb.Biisi
-				self.tiedostopuu.lue_tiedostosta(tietokanta)
-			tietokanta.close()
-			self.artistipuu = None
-			if self.puumoodi:
-				self.kansoita_puu(self.tiedostopuu)
-			else:
-				self.kansoita_puu_artistijako()
-		elif self.tietokantavalitsin.currentText():
-			print(f"Tietokantatiedostoa \"{tietokantatiedosto}\" ei ole.")
-
-	def paivita_tietokannat(self):
-		'''
-		Lataa palvelimelta uudet tietokannat.
-		'''
-		self.tietokantatiedostot = []
-		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
-			tietokantasijainti = os.path.join(
-				mvak.TYOKANSIO,
-				os.path.basename(tietokanta)
-				)
-			koodi = kfun.lataa(vaintiedosto=True,\
-							   lahdepalvelin=mvak.ETAPALVELIN,\
-							   lahdepolku=tietokanta,\
-							   kohdepalvelin=None,\
-							   kohdepolku=tietokantasijainti)
-			if koodi:
-				self.tietokantatiedostot.append(tietokantasijainti)
-		self.tietokantavalitsin.clear()
-		self.tietokantavalitsin.addItems([os.path.basename(a) for a in self.tietokantatiedostot])
-		self.vaihda_tietokantaa()
-
-	def paivita_asetukset(self):
-		'''
-		Päivitä asetuskattaus (as in, joku kirjoitellut INI-tiedostoon uutta kamaa)
-		'''
-		mvak.paivita_asetukset()
-		self.asetusvalitsin.clear()
-		self.asetusvalitsin.addItems([a for a in mvak.config.keys() if a != "DEFAULT"])
-
-	def vaihda_asetuksia(self):
-		'''
-		Vaihtaa asetuskantaa (läh. palvelinta).
-		'''
-		# Lue asetussetin nimi ja vaihda vakiot
-		asetussetti = self.asetusvalitsin.currentText()
-		mvak.vaihda_asetuskokoonpanoa(asetussetti)
-		# Uusi tietokantatiedostot
-		self.tietokantatiedostot = []
-		for tietokanta in mvak.ETAPALVELIN_TIETOKANNAT:
-			tietokantasijainti = os.path.join(
-				mvak.TYOKANSIO,
-				os.path.basename(tietokanta)
-				)
-			if not os.path.exists(tietokantasijainti):
-				if mvak.VERBOOSI:
-					print(
-						f"Tietokantaa ./{tietokantasijainti}"
-						" ei ole ladattu, ladataan."
-						)
-				koodi = kfun.lataa(vaintiedosto=True,\
-								   lahdepalvelin=mvak.ETAPALVELIN,\
-								   lahdepolku=tietokanta,\
-								   kohdepalvelin=None,\
-								   kohdepolku=tietokantasijainti)
-				if koodi:
-					self.tietokantatiedostot.append(os.path.basename(tietokanta))
-			else:
-				if mvak.VERBOOSI:
-					print(
-						f"Tietokanta ./{tietokantasijainti}"
-						" löytyy jo. Päivitä erikseen jos haluat."
-						)
-				self.tietokantatiedostot.append(os.path.basename(tietokanta))
-		# Uusi tiedostopuu
-		if self.tietokantatiedostot:
-			tietokantasijainti = os.path.join(
-				mvak.TYOKANSIO,
-				self.tietokantatiedostot[0]
-				)
-			if os.path.isfile(tietokantasijainti):
-				tietokanta = open(tietokantasijainti, "r")
-				if kfun.paate(tietokantasijainti) == "json":
-					self.tiedostopuu = Tiedostopuu.diktista(
-						json.load(tietokanta)
-						)
-				else:
-					self.tiedostopuu = Tiedostopuu()
-					self.tiedostopuutiedostotyyppi = cb.Biisi
-					self.tiedostopuu.lue_tiedostosta(tietokanta)
-				tietokanta.close()
-				self.juurisolmu.removeRow(0)
-				self.kansoita_puu(self.tiedostopuu)
-				self.puu.setModel(self.puumalli)
-				self.puu.expand(self.puumalli.index(0,0))
-			elif mvak.VERBOOSI:
-				print(f"Ei tietokantatiedostoa {tietokantasijainti}")
-		self.tietokantavalitsin.clear()
-		self.tietokantavalitsin.addItems([
-			os.path.basename(a) for a in self.tietokantatiedostot
-			])
-
-	def closeEvent(self, event):
-		'''
-		Tallenna asetukset ennen sulkemista.
-		'''
-		mvak.tallenna_asetukset()
-		event.accept()
+from tiedostohallinta.class_biisiselaus import  Artistipuu, Hakukriteerit
+
+from class_tyolaiset import NimiLatain, TietokantaLatain, BiisiLatain
+from musatietokanta import PALVELIMET, UI_KOOT, OSOITE, NAPPITYYLI, Palvelintiedot
+from musatietokanta import class_tyolaiset as tyovaki
+from musatietokanta.class_ikkunaluokat import (
+    SelausPuu, LatausLista, VirheIkkuna, Valintatiedot, Hakukentta,
+    )
+
+LOGGER = logging.getLogger(__name__)
+
+class Selausikkuna(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.grid = QtWidgets.QGridLayout()
+        self.grid.setSpacing(5)
+
+        #-----------------------------------------------------------------------
+        # Datat jotka roikkuu messissä ja joita käsitellään
+
+        # Puut (raakadata)
+        self.tietokanta = Tiedostopuu()
+        self.artistipuu = Artistipuu()
+        self.hakutulos_tiedostopuu = Tiedostopuu()
+        self.hakutulos_artistipuu = Artistipuu()
+        # Varastoi myöhempää käyttöä varten (ei tarvii joka kerta ladata)
+        self.aktiivipalvelin = Palvelintiedot()
+
+        # Puut (visualisoitu data)
+        self.selauspuu_tiedosto = SelausPuu()
+        self.selauspuu_artisti = SelausPuu()
+        self.selauspuu_hakutulos_tiedosto = SelausPuu()
+        self.selauspuu_hakutulos_artisti = SelausPuu()
+        #  Näytä vain yksi selaustyyppi kerrallaan
+        self.nakyvat = {
+            "selauspuu_tiedosto": True,
+            "selauspuu_artisti": False,
+            "selauspuu_hakutulos_tiedosto": False,
+            "selauspuu_hakutulos_artisti": False,
+            }
+
+        # Hakumääritelmä
+        self.hakukriteerit = Hakukriteerit()
+
+        #-----------------------------------------------------------------------
+        # Suorituslogiikka, säikeiden signalointi
+
+        # Säikeet joissa asioita suoritetaan
+        self.thread_tietokantanimet = QtCore.QThread()
+        self.thread_tietokantalataus = QtCore.QThread()
+        self.thread_biisilataus = QtCore.QThread()
+
+        # Minkä nimisiä tietokantoja palvelimelta löytyy
+        self.nimilatain = NimiLatain(self.aktiivipalvelin)
+        self.nimilatain.moveToThread(self.thread_tietokantanimet)
+        self.nimilatain.signaali_vastaus.connect(self.aseta_tietokantanimet)
+        self.nimilatain.signaali_virhe.connect(self.sylje_virhe)
+
+        # Lataa kulloinenkin tietokanta
+        self.tietokantalatain = TietokantaLatain(self.aktiivipalvelin)
+        self.tietokantalatain.moveToThread(self.thread_tietokantalataus)
+        self.tietokantalatain.signaali_vastaus.connect(self.aseta_tietokanta)
+        self.tietokantalatain.signaali_virhe.connect(self.sylje_virhe)
+
+        # Biisien lataajaelementti
+        self.biisilatain = BiisiLatain(self.aktiivipalvelin)
+        self.biisilatain.kohdejuuri = "./"
+        self.biisilatain.moveToThread(self.thread_biisilataus)
+        self.biisilatain.signaali_valmis.connect(self.siirry_seuraavaan)
+        self.biisilatain.signaali_vastaus.connect(self.lisaa_soittolistaan)
+        self.biisilatain.signaali_virhe.connect(self.sylje_virhe)
+
+        # Threadialoitukset
+        self.thread_tietokantanimet.started.connect(self.populoi_tietokantanimet)
+        self.thread_tietokantalataus.started.connect(self.tietokantalatain.lue_tietokanta)
+        self.thread_biisilataus.started.connect(self.biisilatain.lataa)
+
+        #-----------------------------------------------------------------------
+        # UI-kälkyttimet
+
+        # Näytä ladattavissa olevat tietokannat pudotusvalikkona
+        self.tietokantavaihtoehdot = QtWidgets.QComboBox()
+        self.tietokantavaihtoehdot.currentIndexChanged.connect(self.vaihda_tietokantaa)
+
+        # Näytä käytettävissä olevat palvelimet pudotusvalikkona
+        self.palvelinvaihtoehdot = QtWidgets.QComboBox()
+        self.palvelinvaihtoehdot.currentIndexChanged.connect(self.vaihda_palvelinta)
+        self.palvelinvaihtoehdot.addItems(["<palvelimet>"] + list(PALVELIMET))
+
+        # Mikä puunäkymä on tällä hetkellä aktiivisena
+        self.aktiivipuu = self.selauspuu_tiedosto
+
+        # Vaihtele tiedostopuun ja artistipuun välillä
+        self.nappi_tiedostopuu = QtWidgets.QPushButton()
+        self.nappi_artistipuu = QtWidgets.QPushButton()
+        self.nappi_tiedostopuu.setStyleSheet(NAPPITYYLI)
+        self.nappi_artistipuu.setStyleSheet(NAPPITYYLI)
+        self.nappi_tiedostopuu.setText("Kansio/Alikansio")
+        self.nappi_artistipuu.setText("Artisti/Albumi")
+        self.nappi_tiedostopuu.clicked.connect(self.vaihda_tiedostopuuhun)
+        self.nappi_artistipuu.clicked.connect(self.vaihda_artistipuuhun)
+
+        # Valinnan tiedot
+        self.valintatiedot = Valintatiedot()
+        self.selauspuu_tiedosto.selectionModel().selectionChanged.connect(self.paivita_tekstiboksi)
+        self.selauspuu_artisti.selectionModel().selectionChanged.connect(self.paivita_tekstiboksi)
+        self.selauspuu_hakutulos_tiedosto.selectionModel().selectionChanged.connect(self.paivita_tekstiboksi)
+        self.selauspuu_hakutulos_artisti.selectionModel().selectionChanged.connect(self.paivita_tekstiboksi)
+
+        # Latausjono
+        self.latauslista = LatausLista(kohdejuuri="./")
+
+        # Latausnappi
+        self.latausnappi = QtWidgets.QPushButton()
+        self.latausnappi.setStyleSheet(NAPPITYYLI)
+        self.latausnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.latausnappi.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.latausnappi.setText("Lataa")
+        self.latausnappi.clicked.connect(self.lisaa_valittu_latausjonoon)
+
+        # Hakukenttä
+        self.hakukentta = Hakukentta()
+        self.hakukentta.returnPressed.connect(self.populoi_hakutuloksilla)
+
+
+        #-----------------------------------------------------------------------
+        # Asioiden sijainnit
+
+        # Puuselaimet kaikki samaan kohtaan
+        self.grid.addWidget(self.selauspuu_tiedosto, *UI_KOOT["selauspuu"])
+        self.grid.addWidget(self.selauspuu_artisti, *UI_KOOT["selauspuu"])
+        self.grid.addWidget(self.selauspuu_hakutulos_tiedosto, *UI_KOOT["selauspuu"])
+        self.grid.addWidget(self.selauspuu_hakutulos_artisti, *UI_KOOT["selauspuu"])
+
+        # Näkymän vaihtonamiskat
+        self.grid.addWidget(self.nappi_tiedostopuu, *UI_KOOT["nappi_tiedostopuu"])
+        self.grid.addWidget(self.nappi_artistipuu, *UI_KOOT["nappi_artistipuu"])
+
+        # Yläpalkki
+        # Etsimiskenttä
+        self.grid.addWidget(self.hakukentta, *UI_KOOT["hakukentta"])
+        # Tietokantojen nimet pudotusvalikkona
+        self.grid.addWidget(self.tietokantavaihtoehdot, *UI_KOOT["tietokantavaihtoehdot"])
+        # Palvelinten nimet pudotusvalikkona
+        self.grid.addWidget(self.palvelinvaihtoehdot, *UI_KOOT["palvelinvaihtoehdot"])
+
+        # Valinnan tiedot
+        self.grid.addWidget(self.valintatiedot, *UI_KOOT["valintatiedot"])
+
+        # Latauslista oikealle alas
+        self.grid.addWidget(self.latauslista, *UI_KOOT["latauslista"])
+
+        # Latausnappi
+        self.grid.addWidget(self.latausnappi, *UI_KOOT["latausnappi"])
+
+        self.setLayout(self.grid)
+        self.setWindowTitle("Uusi musatietokantaselain")
+        self.setGeometry(50,50,200,400)
+
+        # Sulkemistoiminto ctrl+q
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
+        self.quitSc.activated.connect(QtWidgets.QApplication.instance().quit)
+
+        self.alusta()
+
+    #---------------------------------------------------------------------------
+
+    def alusta(self):
+        '''Aja alustustoimenpiteet.'''
+        self.show()
+        #self.thread_tietokantanimet.start()
+        self.aseta_puunakyma()
+
+    def aseta_tietokantanimet(self, nimet):
+        self.tietokantanimet = nimet
+        LOGGER.debug(f"Ladattiin tietokantanimet: {self.tietokantanimet}")
+        self.tietokantavaihtoehdot.clear()
+        self.tietokantavaihtoehdot.addItems(["<tietokantanimet>"]+nimet)
+        self.thread_tietokantanimet.quit()
+
+    def populoi_tietokantanimet(self):
+        '''Lataa tietokantojen nimet palvelimelta'''
+        self.nimilatain.lataa()
+
+    def vaihda_palvelinta(self):
+        '''Vaihda lähdepalvelimesta toiseen.'''
+        # ei palvelimia tai infoteksti
+        if self.palvelinvaihtoehdot.currentIndex() in (0,-1):
+            LOGGER.debug("Skip")
+            return
+        palvelin = self.palvelinvaihtoehdot.currentText()
+        LOGGER.debug(f"Vaihda palvelimeen {palvelin}")
+        self.aktiivipalvelin = PALVELIMET.get(palvelin)
+        # Aseta latainten asetukset ajan tasalle
+        self.nimilatain.asetukset = self.aktiivipalvelin
+        self.tietokantalatain.asetukset = self.aktiivipalvelin
+        self.biisilatain.asetukset = self.aktiivipalvelin
+        self.nimilatain.tyyppi = self.aktiivipalvelin.tyyppi
+        self.tietokantalatain.tyyppi = self.aktiivipalvelin.tyyppi
+        self.biisilatain.tyyppi = self.aktiivipalvelin.tyyppi
+        # Kansiot oikein
+        self.biisilatain.kohdejuuri = self.aktiivipalvelin.latauskansio
+        self.latauslista.kohdejuuri = self.aktiivipalvelin.latauskansio
+        # Aseta nimet ja puu ajan tasalle
+        self.thread_tietokantanimet.start()
+        self.aseta_puunakyma()
+
+    def lisaa_valittu_latausjonoon(self, asia=None):
+        '''
+        Lisää valittu asia latausjonon perälle.
+        '''
+        if not isinstance(asia, Qt.QStandardItem):
+            asia = self.aktiivipuu.anna_valittu()
+        self.latauslista.lisaa(asia)
+        if not self.thread_biisilataus.isRunning():
+            self.aloita_latausrumba()
+
+    def aseta_puunakyma(self):
+        '''
+        Valitse mikä näkymä näytetään puunäkymäruudussa.
+        '''
+        avaa = False
+        for attr,arvo in self.nakyvat.items():
+            selausnakyma = getattr(self, attr)
+            selausnakyma.setVisible(arvo)
+            # Pidetään kirjaa mikä puista on näkyvillä
+            # (osataan valia asiat oikeasta puusta)
+            if arvo:
+                self.aktiivipuu = selausnakyma
+                if attr in ("selauspuu_tiedosto", "selauspuu_hakutulos_tiedosto"):
+                    avaa = True
+        if avaa:
+            self.aktiivipuu.avaa_juuri()
+
+    def vaihda_tiedostopuuhun(self):
+        '''Vaihda selauspuun näkymätyyppiä artistipuu -> tiedostopuu.'''
+        self.nappi_artistipuu.setEnabled(False)
+        # Koko puu -> koko puu
+        if self.nakyvat["selauspuu_artisti"]:
+            self.nakyvat["selauspuu_artisti"] = False
+            self.nakyvat["selauspuu_tiedosto"] = True
+        # Hakutulokset -> Hakutulokset
+        elif self.nakyvat["selauspuu_hakutulos_artisti"]:
+            self.nakyvat["selauspuu_hakutulos_artisti"] = False
+            self.nakyvat["selauspuu_hakutulos_tiedosto"] = True
+        self.aseta_puunakyma()
+        self.nappi_artistipuu.setEnabled(True)
+
+    def vaihda_artistipuuhun(self):
+        '''Vaihda selauspuun näkymätyyppiä tiedostopuu -> artistipuu.'''
+        self.nappi_tiedostopuu.setEnabled(False)
+        # Koko puu -> koko puu
+        if self.nakyvat["selauspuu_tiedosto"]:
+            self.nakyvat["selauspuu_tiedosto"] = False
+            self.nakyvat["selauspuu_artisti"] = True
+            # Kansoita tarvittaessa (tiedostopuut aina kansoitettu)
+            if not self.selauspuu_artisti:
+                self.selauspuu_artisti.kansoita_artistirakenne(self.tietokanta)
+        # Hakutulokset -> Hakutulokset
+        elif self.nakyvat["selauspuu_hakutulos_tiedosto"]:
+            self.nakyvat["selauspuu_hakutulos_tiedosto"] = False
+            self.nakyvat["selauspuu_hakutulos_artisti"] = True
+            # Kansoita tarvittaessa (tiedostopuut aina kansoitettu)
+            if not self.selauspuu_hakutulos_artisti:
+                self.selauspuu_artisti.kansoita_artistirakenne(self.hakutulos_artistipuu)
+        self.aseta_puunakyma()
+        self.nappi_tiedostopuu.setEnabled(True)
+
+    def lataa_tietokanta(self):
+        self.thread_tietokantalataus.start()
+        self.tietokantavaihtoehdot.setEnabled(False)
+
+    def aseta_tietokanta(self, kanta):
+        self.tietokanta = kanta
+        self.aktiivipalvelin.tietokannat[self.tietokantalatain.nimi] = kanta
+        self.selauspuu_tiedosto.kansoita_tiedostorakenne(kanta)
+        self.thread_tietokantalataus.quit()
+        self.tietokantavaihtoehdot.setEnabled(True)
+        self.aseta_puunakyma()
+
+    def vaihda_tietokantaa(self):
+        # Lataa vain jos oikeasti joku tietokanta valittuna
+        if self.tietokantavaihtoehdot.currentIndex() in (0,-1):
+            return
+        haettava = self.tietokantavaihtoehdot.currentText()
+        kanta = self.aktiivipalvelin.tietokannat.get(haettava)
+        if kanta is None:
+            self.tietokantalatain.nimi = haettava
+            self.lataa_tietokanta()
+        else:
+            self.tietokanta = kanta
+            self.selauspuu_tiedosto.kansoita_tiedostorakenne(kanta)
+        self.aseta_puunakyma()
+
+    def paivita_tekstiboksi(self):
+        '''
+        Päivitä valintatietoboksi.
+        '''
+        asia = self.aktiivipuu.anna_valittu()
+        st = str(asia)*(asia is not None)
+        self.valintatiedot.setText(st)
+
+    #---------------------------------------------------------------------------
+    # Hakutoiminnot
+    def populoi_hakutuloksilla(self):
+        hakutulokset = self.hakukentta.hae()
+        if not hakutulokset:
+            LOGGER.debug("Hakutermit ei kunnolliset.")
+            oli_tuloksia = False
+            tulokset = {}
+        else:
+            haku = Hakukriteerit(hakutulokset)
+            oli_tuloksia, tulokset = haku.etsi_tietokannasta(self.tietokanta)
+        if oli_tuloksia:
+            # Näytä tiedostopuuna
+            if (self.nakyvat.get("selauspuu_tiedosto")
+                or self.nakyvat.get("selauspuu_hakutulos_tiedosto")
+                ):
+                self.nakyvat = {
+                    avain: (False if avain != "selauspuu_hakutulos_tiedosto"
+                            else True)
+                    for avain in self.nakyvat
+                    }
+            # Näytä artistipuuna
+            else:
+                self.nakyvat = {
+                    avain: (False if avain != "selauspuu_hakutulos_artisti"
+                            else True)
+                    for avain in self.nakyvat
+                    }
+            self.hakutulos_tiedostopuu = tulokset
+            self.hakutulos_artistipuu = Artistipuu(tulokset)
+            self.selauspuu_hakutulos_tiedosto.kansoita_tiedostorakenne(self.hakutulos_tiedostopuu)
+            self.selauspuu_hakutulos_artisti.kansoita_artistirakenne(self.hakutulos_artistipuu)
+            self.aseta_puunakyma()
+            self.aktiivipuu.expandAll()
+        # Jos ei tuloksia, näytä alkuperäinen puu
+        else:
+            # Näytä tiedostopuuna
+            if (self.nakyvat.get("selauspuu_tiedosto")
+                or self.nakyvat.get("selauspuu_hakutulos_tiedosto")
+                ):
+                self.nakyvat = {
+                    avain: (False if avain != "selauspuu_tiedosto"
+                            else True)
+                    for avain in self.nakyvat
+                    }
+            # Näytä artistipuuna
+            else:
+                self.nakyvat = {
+                    avain: (False if avain != "selauspuu_artisti"
+                            else True)
+                    for avain in self.nakyvat
+                    }
+            self.hakutulos_tiedostopuu = Tiedostopuu()
+            self.hakutulos_artistipuu = Artistipuu()
+            self.aseta_puunakyma()
+
+    #---------------------------------------------------------------------------
+    # Lataustoiminnot
+
+    def lisaa_soittolistaan(self, status):
+        '''Jos biisi saatiin ladattua, lisää se soittolistaan.
+
+        Jos latausmenetelmänä on http, tulee pitää huoli siitä että
+        kappaletta ei vain ladata vaan että se myös lisätään soitinohjelman
+        soittolistalle (legacy ssh hoitaa nämä molemmat samaan syssyyn.)
+
+        Sisään
+        ------
+        status : bool
+            Jos lataus onnistui, True (lisää listaan jos HTTP-kutsu).
+            Muutoin älä tee mitään.
+        '''
+        if not status:
+            return
+        sijainti = self.biisilatain.polku_kohde
+        komento = self.aktiivipalvelin.komento_lisaa_kappale
+        subprocess.run([komento, sijainti])
+
+    def sylje_virhe(self, virhe):
+        '''Anna virheilmoitus pop-uppina.'''
+        VirheIkkuna(virhe)
+
+    def aloita_latausrumba(self):
+        '''Aloita latauslistan läpikäynti.'''
+        self.siirry_seuraavaan(sailyta=True)
+
+    def siirry_seuraavaan(self, sailyta=False):
+        '''
+        Laita seuraava asia latautumaan ja poista edellinen listasta.
+        '''
+        # Tapa edellisen latauksen threadi ja odota kunnes se on veks
+        if self.thread_biisilataus.isRunning():
+            self.thread_biisilataus.quit()
+            while self.thread_biisilataus.isRunning():
+                time.sleep(1E-6)
+        # Poista edellinen asia listasta, jollei rosessi ole alussa
+        if not sailyta:
+            edellinen_asia = self.latauslista.takeItem(0)
+        # Ota listasta seuraava juttu ladattavaksi
+        seuraava_asia = self.latauslista.item(0)
+        if seuraava_asia is not None:
+            seuraava_data = seuraava_asia.data(QtCore.Qt.UserRole)
+            self.biisilatain.polku_lahde = seuraava_data.polku_lahde
+            self.biisilatain.polku_kohde = seuraava_data.polku_kohde
+            self.biisilatain.tarvittava_kansio = seuraava_data.tarvittava_kansio
+            seuraava_asia.setBackground(QtGui.QColor(*LatausLista.TAUSTA_LATAUS))
+            seuraava_asia.setForeground(QtGui.QColor(*LatausLista.TEKSTI_LATAUS))
+            self.thread_biisilataus.start()
