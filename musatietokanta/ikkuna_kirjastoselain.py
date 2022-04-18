@@ -16,8 +16,8 @@ from PyQt5 import Qt, QtCore
 from tiedostohallinta.class_tiedostopuu import Tiedostopuu
 from tiedostohallinta.class_biisiselaus import  Artistipuu, Hakukriteerit
 
-from class_tyolaiset import NimiLatain, TietokantaLatain, BiisiLatain
-from musatietokanta import PALVELIMET, UI_KOOT, OSOITE, NAPPITYYLI, Palvelintiedot
+from musatietokanta.class_tyolaiset import NimiLatain, TietokantaLatain, BiisiLatain
+from musatietokanta import PALVELIMET, UI_KOOT, VARITEEMA, Palvelintiedot
 from musatietokanta import class_tyolaiset as tyovaki
 from musatietokanta.class_ikkunaluokat import (
     SelausPuu, LatausLista, VirheIkkuna, Valintatiedot, Hakukentta,
@@ -30,6 +30,7 @@ class Selausikkuna(QtWidgets.QWidget):
         super().__init__()
         self.grid = QtWidgets.QGridLayout()
         self.grid.setSpacing(5)
+        self.setStyleSheet(VARITEEMA)
 
         #-----------------------------------------------------------------------
         # Datat jotka roikkuu messissä ja joita käsitellään
@@ -109,8 +110,8 @@ class Selausikkuna(QtWidgets.QWidget):
         # Vaihtele tiedostopuun ja artistipuun välillä
         self.nappi_tiedostopuu = QtWidgets.QPushButton()
         self.nappi_artistipuu = QtWidgets.QPushButton()
-        self.nappi_tiedostopuu.setStyleSheet(NAPPITYYLI)
-        self.nappi_artistipuu.setStyleSheet(NAPPITYYLI)
+        self.nappi_tiedostopuu.setStyleSheet(VARITEEMA+"font-weight: bold")
+        self.nappi_artistipuu.setStyleSheet(VARITEEMA+"font-weight: bold")
         self.nappi_tiedostopuu.setText("Kansio/Alikansio")
         self.nappi_artistipuu.setText("Artisti/Albumi")
         self.nappi_tiedostopuu.clicked.connect(self.vaihda_tiedostopuuhun)
@@ -128,7 +129,7 @@ class Selausikkuna(QtWidgets.QWidget):
 
         # Latausnappi
         self.latausnappi = QtWidgets.QPushButton()
-        self.latausnappi.setStyleSheet(NAPPITYYLI)
+        self.latausnappi.setStyleSheet(VARITEEMA+"font-weight: bold")
         self.latausnappi.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.latausnappi.setFocusPolicy(QtCore.Qt.NoFocus)
         self.latausnappi.setText("Lataa")
@@ -138,6 +139,11 @@ class Selausikkuna(QtWidgets.QWidget):
         self.hakukentta = Hakukentta()
         self.hakukentta.returnPressed.connect(self.populoi_hakutuloksilla)
 
+        # Värit kohdilleen
+        self.selauspuu_tiedosto.setStyleSheet(VARITEEMA)
+        self.selauspuu_artisti.setStyleSheet(VARITEEMA)
+        self.selauspuu_hakutulos_tiedosto.setStyleSheet(VARITEEMA)
+        self.selauspuu_hakutulos_artisti.setStyleSheet(VARITEEMA)
 
         #-----------------------------------------------------------------------
         # Asioiden sijainnit

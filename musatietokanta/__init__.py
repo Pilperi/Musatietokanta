@@ -2,6 +2,7 @@ __version__ = "2022.04.18"
 __author__  = "Pilperi"
 
 import os
+import json
 import logging
 import configparser
 
@@ -11,7 +12,7 @@ if not LOGGER.hasHandlers():
 
 #-------------------------------------------------------------------------------
 # Koneen määritykset
-OSOITE = "http://62.78.212.11:5000/"
+
 
 # Tunnista käytettävä kone kotikansion perusteella.
 KOTIKANSIO = os.path.expanduser("~")
@@ -54,7 +55,7 @@ class Palvelintiedot:
         self._nimi = ""
         self.osoite = ""
         self._tyyppi = "http"
-        self.komento_lisaa_kappale = ""
+        self._komento_lisaa_kappale = []
         self._latauskansio = TYOKANSIO
         self._ylikirjoita = True
         self.raja_latausvaroitus = 50
@@ -134,6 +135,20 @@ class Palvelintiedot:
         self._tyyppi = uusiarvo.lower()
 
     @property
+    def komento_lisaa_kappale(self):
+        return self._komento_lisaa_kappale
+    @komento_lisaa_kappale.setter
+    def komento_lisaa_kappale(self, uusiarvo):
+        if isinstance(uusiarvo, str):
+            self._komento_lisaa_kappale = [uusiarvo]
+        elif isinstance(uusiarvo, (list, tuple)):
+            self._komento_lisaa_kappale = uusiarvo
+        else:
+            errmsg = f"{uusiarvo} ei ole käypä osoite, pitää olla http tai ssh"
+            LOGGER.error(errmsg)
+            raise ValueError(errmsg)
+
+    @property
     def ylikirjoita(self):
         return self._ylikirjoita
     @ylikirjoita.setter
@@ -153,7 +168,7 @@ class Palvelintiedot:
         '''
         configgi.set(self.nimi, "osoite", self.osoite)
         configgi.set(self.nimi, "tyyppi", self.tyyppi)
-        configgi.set(self.nimi, "lisayskomento", self.komento_lisaa_kappale)
+        configgi.set(self.nimi, "lisayskomento", json.dumps(self.komento_lisaa_kappale))
         configgi.set(self.nimi, "latauskansio", self.latauskansio)
         configgi.set(self.nimi, "ylikirjoita", self.ylikirjoita)
         configgi.set(self.nimi, "raja latausvaroitus", self.raja_latausvaroitus)
@@ -176,7 +191,7 @@ for asetussetti in ASETUKSET:
         asetuskokoonpano.tyyppi = ASETUKSET.get(asetussetti, "tyyppi")
         LOGGER.debug(f"Tyyppi: {asetuskokoonpano.tyyppi} {type(asetuskokoonpano.tyyppi)}")
         # Paikallinen komento jolla ladatut kappaleet olisi tarkoitus lisätä
-        asetuskokoonpano.komento_lisaa_kappale = ASETUKSET.get(asetussetti, "lisayskomento")
+        asetuskokoonpano.komento_lisaa_kappale = json.loads(ASETUKSET.get(asetussetti, "lisayskomento"))
         LOGGER.debug(f"Lisäyskomento: {asetuskokoonpano.komento_lisaa_kappale} {type(asetuskokoonpano.tyyppi)}")
         # Minne kappaleet olisi tarkoitus ladata
         asetuskokoonpano.latauskansio = ASETUKSET.get(asetussetti, "latauskansio")
@@ -220,4 +235,4 @@ UI_KOOT = {
     "latauslista": (50,50,40,30),
     "latausnappi": (90,50,10,30),
     }
-NAPPITYYLI = "background-color: #373c41; color: white; font-weight: bold"
+VARITEEMA = "background-color: #31363b; color: white;"
