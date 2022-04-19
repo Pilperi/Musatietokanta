@@ -31,6 +31,9 @@ if not os.path.exists(TYOKANSIO):
             )
 
 CONFIGTIEDOSTO = os.path.join(TYOKANSIO, "asetukset.ini")
+ASETUKSET = configparser.ConfigParser(default_section="Pettankone")
+PALVELIMET = {
+    }
 
 LOGGER.debug(f"LOKAALI_KONE: {LOKAALI_KONE}")
 LOGGER.debug(f"KOTIKANSIO: {KOTIKANSIO}")
@@ -38,12 +41,6 @@ LOGGER.debug(f"TYOKANSIO: {TYOKANSIO}")
 LOGGER.debug(f"CONFIGTIEDOSTO: {CONFIGTIEDOSTO}")
 LOGGER.debug(f"SIJAINTI_LATAALISAA: {SIJAINTI_LATAALISAA}")
 
-
-# Luetaan asetukset INI-tiedostosta, jos sellainen löytyy.
-ASETUKSET = configparser.ConfigParser(default_section="Pettankone")
-if os.path.exists(CONFIGTIEDOSTO):
-    LOGGER.debug(f"Luetaan asetukset .ini-tiedostosta {CONFIGTIEDOSTO}")
-    ASETUKSET.read(CONFIGTIEDOSTO)
 
 
 # Asetuskokoonpanot
@@ -176,44 +173,66 @@ class Palvelintiedot:
         configgi.set(self.nimi, "tietokannat", json.dumps(
             [f"{t}.json" for t in self.tietokannat]))
 
-PALVELIMET = {
-    }
-for asetussetti in ASETUKSET:
-    try:
-        asetuskokoonpano = Palvelintiedot()
-        # Etäpalvelimen nimi
-        asetuskokoonpano.nimi = asetussetti
-        LOGGER.debug(f"Nimi: {asetuskokoonpano.nimi} {type(asetuskokoonpano.nimi)}")
-        # Etäpalvelimen osoite
-        asetuskokoonpano.osoite = ASETUKSET.get(asetussetti, "etapalvelin")
-        LOGGER.debug(f"Osoite: {asetuskokoonpano.osoite} {type(asetuskokoonpano.osoite)}")
-        # Etäpalvelimen tyyppi, onko http vai ssh
-        asetuskokoonpano.tyyppi = ASETUKSET.get(asetussetti, "tyyppi")
-        LOGGER.debug(f"Tyyppi: {asetuskokoonpano.tyyppi} {type(asetuskokoonpano.tyyppi)}")
-        # Paikallinen komento jolla ladatut kappaleet olisi tarkoitus lisätä
-        asetuskokoonpano.komento_lisaa_kappale = json.loads(ASETUKSET.get(asetussetti, "lisayskomento"))
-        LOGGER.debug(f"Lisäyskomento: {asetuskokoonpano.komento_lisaa_kappale} {type(asetuskokoonpano.tyyppi)}")
-        # Minne kappaleet olisi tarkoitus ladata
-        asetuskokoonpano.latauskansio = ASETUKSET.get(asetussetti, "latauskansio")
-        LOGGER.debug(f"Latauskansio: {asetuskokoonpano.latauskansio} {type(asetuskokoonpano.latauskansio)}")
-        # Ylikirjoituspolitiikka
-        asetuskokoonpano.ylikirjoita = ASETUKSET.get(asetussetti, "ylikirjoita")
-        LOGGER.debug(f"Ylikirjoituspolitiikka: {asetuskokoonpano.ylikirjoita} {type(asetuskokoonpano.ylikirjoita)}")
-        # Latausvaroituksen raja
-        asetuskokoonpano.raja_latausvaroitus = ASETUKSET.get(asetussetti, "raja latausvaroitus")
-        LOGGER.debug(f"Latausvaroituksen raja: {asetuskokoonpano.raja_latausvaroitus} {type(asetuskokoonpano.raja_latausvaroitus)}")
-        # Latausvaroituksen raja
-        asetuskokoonpano.tietokantojen_sijainti = ASETUKSET.get(asetussetti, "tietokantojen sijainti")
-        LOGGER.debug(f"Tietokantojen sijainti: {asetuskokoonpano.tietokantojen_sijainti} {type(asetuskokoonpano.tietokantojen_sijainti)}")
-
-        # Lisää diktiin
-        PALVELIMET[asetussetti] = asetuskokoonpano
-        LOGGER.debug("Lisätty palvelinten listaan.")
-    # Jos asetukset on kökösti, skippaa
-    except (configparser.NoOptionError, ValueError) as err:
-        LOGGER.warning(err)
+    def tallenna(self, nimi):
+        '''Tallenna tietokannat tiedostoiksi.
+        Läh. voidaan väkisin ylikirjoittaa olemassaolevan päälle.
+        '''
+        LOGGER.debug(f"Tallenna {self.nimi} tietokanta {nimi} tiedostoksi.")
+        if not os.path.exists(self.tietokantojen_sijainti):
+            errmsg = f"Tallennuskohdetta {self.tietokantojen_sijainti} ei ole!"
+            raise OSError(errmsg)
+        polku = os.path.join(self.tietokantojen_sijainti, f"{nimi}.json")
+        kanta = self.tietokannat[nimi]
+        LOGGER.debug(f"Kanta {nimi} kohteeseen {polku}")
+        with open(polku, "w+", encoding="utf-8") as filu:
+            json.dump(kanta.diktiksi(), filu, indent=1, separators=(",",":"))
 
 
+def lue_palvelinasetukset_tiedostosta(tiedosto=CONFIGTIEDOSTO):
+    '''Lue asetuskokoonpanot tiedostosta.'''
+    if os.path.exists(tiedosto):
+        LOGGER.debug(f"Luetaan asetukset .ini-tiedostosta {tiedosto}")
+        ASETUKSET.read(tiedosto)
+    else:
+        errmsg = f"Ei löydy asetustiedostoa {tiedosto}!"
+        LOGGER.error(errmsg)
+        raise OSError(errmsg)
+    for asetussetti in ASETUKSET:
+        try:
+            asetuskokoonpano = Palvelintiedot()
+            # Etäpalvelimen nimi
+            asetuskokoonpano.nimi = asetussetti
+            LOGGER.debug(f"Nimi: {asetuskokoonpano.nimi} {type(asetuskokoonpano.nimi)}")
+            # Etäpalvelimen osoite
+            asetuskokoonpano.osoite = ASETUKSET.get(asetussetti, "etapalvelin")
+            LOGGER.debug(f"Osoite: {asetuskokoonpano.osoite} {type(asetuskokoonpano.osoite)}")
+            # Etäpalvelimen tyyppi, onko http vai ssh
+            asetuskokoonpano.tyyppi = ASETUKSET.get(asetussetti, "tyyppi")
+            LOGGER.debug(f"Tyyppi: {asetuskokoonpano.tyyppi} {type(asetuskokoonpano.tyyppi)}")
+            # Paikallinen komento jolla ladatut kappaleet olisi tarkoitus lisätä
+            asetuskokoonpano.komento_lisaa_kappale = json.loads(ASETUKSET.get(asetussetti, "lisayskomento"))
+            LOGGER.debug(f"Lisäyskomento: {asetuskokoonpano.komento_lisaa_kappale} {type(asetuskokoonpano.tyyppi)}")
+            # Minne kappaleet olisi tarkoitus ladata
+            asetuskokoonpano.latauskansio = ASETUKSET.get(asetussetti, "latauskansio")
+            LOGGER.debug(f"Latauskansio: {asetuskokoonpano.latauskansio} {type(asetuskokoonpano.latauskansio)}")
+            # Ylikirjoituspolitiikka
+            asetuskokoonpano.ylikirjoita = ASETUKSET.get(asetussetti, "ylikirjoita")
+            LOGGER.debug(f"Ylikirjoituspolitiikka: {asetuskokoonpano.ylikirjoita} {type(asetuskokoonpano.ylikirjoita)}")
+            # Latausvaroituksen raja
+            asetuskokoonpano.raja_latausvaroitus = ASETUKSET.get(asetussetti, "raja latausvaroitus")
+            LOGGER.debug(f"Latausvaroituksen raja: {asetuskokoonpano.raja_latausvaroitus} {type(asetuskokoonpano.raja_latausvaroitus)}")
+            # Latausvaroituksen raja
+            asetuskokoonpano.tietokantojen_sijainti = ASETUKSET.get(asetussetti, "tietokantojen sijainti")
+            LOGGER.debug(f"Tietokantojen sijainti: {asetuskokoonpano.tietokantojen_sijainti} {type(asetuskokoonpano.tietokantojen_sijainti)}")
+
+            # Lisää diktiin
+            PALVELIMET[asetussetti] = asetuskokoonpano
+            LOGGER.debug("Lisätty palvelinten listaan.")
+        # Jos asetukset on kökösti, skippaa
+        except (configparser.NoOptionError, ValueError) as err:
+            LOGGER.warning(err)
+
+lue_palvelinasetukset_tiedostosta()
 #-------------------------------------------------------------------------------
 # UI-määritykset
 

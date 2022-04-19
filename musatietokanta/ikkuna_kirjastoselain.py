@@ -17,10 +17,10 @@ from tiedostohallinta.class_tiedostopuu import Tiedostopuu
 from tiedostohallinta.class_biisiselaus import  Artistipuu, Hakukriteerit
 
 from musatietokanta.class_tyolaiset import NimiLatain, TietokantaLatain, BiisiLatain
-from musatietokanta import PALVELIMET, UI_KOOT, VARITEEMA, Palvelintiedot
+from musatietokanta import PALVELIMET, UI_KOOT, VARITEEMA, Palvelintiedot, lue_palvelinasetukset_tiedostosta
 from musatietokanta import class_tyolaiset as tyovaki
 from musatietokanta.class_ikkunaluokat import (
-    SelausPuu, LatausLista, VirheIkkuna, Valintatiedot, Hakukentta,
+    SelausPuu, LatausLista, VirheIkkuna, Valintatiedot, Hakukentta, Pudotusvalikko
     )
 
 LOGGER = logging.getLogger(__name__)
@@ -96,12 +96,14 @@ class Selausikkuna(QtWidgets.QWidget):
         # UI-kälkyttimet
 
         # Näytä ladattavissa olevat tietokannat pudotusvalikkona
-        self.tietokantavaihtoehdot = QtWidgets.QComboBox()
+        self.tietokantavaihtoehdot = Pudotusvalikko()
         self.tietokantavaihtoehdot.currentIndexChanged.connect(self.vaihda_tietokantaa)
+        self.tietokantavaihtoehdot.signaali_vastaus.connect(self.paivita_tietokanta)
 
         # Näytä käytettävissä olevat palvelimet pudotusvalikkona
-        self.palvelinvaihtoehdot = QtWidgets.QComboBox()
+        self.palvelinvaihtoehdot = Pudotusvalikko()
         self.palvelinvaihtoehdot.currentIndexChanged.connect(self.vaihda_palvelinta)
+        self.palvelinvaihtoehdot.signaali_vastaus.connect(self.paivita_palvelimet)
         self.palvelinvaihtoehdot.addItems(["<palvelimet>"] + list(PALVELIMET))
 
         # Mikä puunäkymä on tällä hetkellä aktiivisena
@@ -206,6 +208,7 @@ class Selausikkuna(QtWidgets.QWidget):
 
     def vaihda_palvelinta(self):
         '''Vaihda lähdepalvelimesta toiseen.'''
+        LOGGER.debug("Vaihda palvelinta.")
         # ei palvelimia tai infoteksti
         if self.palvelinvaihtoehdot.currentIndex() in (0,-1):
             LOGGER.debug("Skip")
@@ -226,6 +229,13 @@ class Selausikkuna(QtWidgets.QWidget):
         # Aseta nimet ja puu ajan tasalle
         self.thread_tietokantanimet.start()
         self.aseta_puunakyma()
+
+    def paivita_palvelimet(self, booli):
+        '''Päivitä palvelinlista.'''
+        LOGGER.debug("Päivitä palvelinlista.")
+        lue_palvelinasetukset_tiedostosta()
+        self.palvelinvaihtoehdot.clear()
+        self.palvelinvaihtoehdot.addItems(["<palvelimet>"] + list(PALVELIMET))
 
     def lisaa_valittu_latausjonoon(self, asia=None):
         '''
@@ -313,6 +323,15 @@ class Selausikkuna(QtWidgets.QWidget):
             self.tietokanta = kanta
             self.selauspuu_tiedosto.kansoita_tiedostorakenne(kanta)
         self.aseta_puunakyma()
+
+    def paivita_tietokanta(self, booli):
+        '''Lataa tietokanta uusiksi palvelimelta.'''
+        if self.tietokantavaihtoehdot.currentIndex() in (0,-1):
+            return
+        self.tietokantalatain.lataa()
+        while self.thread_tietokantalataus.isRunning():
+            time.sleep(1E-6)
+        self.aktiivipalvelin.tallenna(self.tietokantalatain.nimi)
 
     def paivita_tekstiboksi(self):
         '''

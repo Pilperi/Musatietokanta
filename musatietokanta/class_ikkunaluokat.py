@@ -11,7 +11,7 @@ from tiedostohallinta.class_biisiselaus import  Artistipuu
 
 from musatietokanta import class_tyolaiset as tyovaki
 from musatietokanta.class_uielementit import (
-    Kansioelementti, Tiedostoelementti, Artistielementti,
+    PuuElementti, Kansioelementti, Tiedostoelementti, Artistielementti,
     Albumielementti, Raitaelementti,
     )
 
@@ -19,7 +19,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-
 
 class VirheIkkuna(QtWidgets.QMessageBox):
     '''Näytä virheilmoitus popuppina.'''
@@ -46,7 +45,6 @@ class LatausAsia:
 
 #-------------------------------------------------------------------------------
 
-
 class LatausLista(QtWidgets.QListWidget):
     '''
     Latausjonolista.
@@ -61,6 +59,7 @@ class LatausLista(QtWidgets.QListWidget):
             self.kohdejuuri = kohdejuuri
         else:
             errmsg = f"Kohdejuuri {kohdejuuri} ei ole käypä kansio."
+            LOGGER.error(errmsg)
             raise ValueError(errmsg)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.installEventFilter(self)
@@ -169,7 +168,6 @@ class LatausLista(QtWidgets.QListWidget):
 
 
 #-------------------------------------------------------------------------------
-
 
 class SelausPuu(QtWidgets.QTreeView):
     '''
@@ -310,6 +308,8 @@ class SelausPuu(QtWidgets.QTreeView):
         self.expand(self.puumalli.index(0,0))
 
 
+#-------------------------------------------------------------------------------
+
 class Valintatiedot(QtWidgets.QTextEdit):
     '''
     Valintatietoruutu.
@@ -339,6 +339,8 @@ class Valintatiedot(QtWidgets.QTextEdit):
         else:
             self.setText("")
 
+
+#-------------------------------------------------------------------------------
 
 class Hakukentta(QtWidgets.QLineEdit):
     '''
@@ -423,3 +425,29 @@ class Hakukentta(QtWidgets.QLineEdit):
         if not hakutermit:
             hakudikti = {}
         return hakudikti
+
+
+#-------------------------------------------------------------------------------
+
+class Pudotusvalikko(QtWidgets.QComboBox):
+    '''
+    Pudotusvalikko jossa asiat oikeaklikkailtavia niin että niihin
+    ilmaantuu kontekstimenu jossa mahdollisuus päivittää valittu asia.
+    '''
+    signaali_vastaus = QtCore.pyqtSignal(bool)
+    def __init__(self):
+        super().__init__()
+        #self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.installEventFilter(self)
+
+    def eventFilter(self, source, event):
+        '''
+        Oikealla klikkaamalla anna toimenpidevalikoima.
+        '''
+        if event.type() == QtCore.QEvent.ContextMenu and source is self:
+            menu = QtWidgets.QMenu()
+            menu.addAction("Päivitä")
+            if menu.exec_(event.globalPos()):
+                self.signaali_vastaus.emit(True)
+            return True
+        return False

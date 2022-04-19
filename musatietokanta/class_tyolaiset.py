@@ -54,9 +54,9 @@ class Latain(QtCore.QObject):
         self._tarvittava_kansio = None
 
         # Latausfunktio (millä ladataan)
-        self._latausfunktio = musapet.lataa_biisi_kansioon
-        self.latausfunktio = "http"
-        self._latausfunktion_nimi = "http"
+        self._latausfunktio = self.lataa_http
+        self.latausfunktio = asetukset.tyyppi
+        self._latausfunktion_nimi = asetukset.tyyppi
 
     @property
     def osoite(self):
