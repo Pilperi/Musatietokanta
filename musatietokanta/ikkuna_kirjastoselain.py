@@ -287,14 +287,14 @@ class Selausikkuna(QtWidgets.QWidget):
             self.nakyvat["selauspuu_artisti"] = True
             # Kansoita tarvittaessa (tiedostopuut aina kansoitettu)
             if not self.selauspuu_artisti:
-                self.selauspuu_artisti.kansoita_artistirakenne(self.tietokanta)
+                self.selauspuu_artisti.kansoita_artistirakenne(self.artistipuu)
         # Hakutulokset -> Hakutulokset
         elif self.nakyvat["selauspuu_hakutulos_tiedosto"]:
             self.nakyvat["selauspuu_hakutulos_tiedosto"] = False
             self.nakyvat["selauspuu_hakutulos_artisti"] = True
             # Kansoita tarvittaessa (tiedostopuut aina kansoitettu)
             if not self.selauspuu_hakutulos_artisti:
-                self.selauspuu_artisti.kansoita_artistirakenne(self.hakutulos_artistipuu)
+                self.selauspuu_hakutulos_artisti.kansoita_artistirakenne(self.hakutulos_artistipuu)
         self.aseta_puunakyma()
         self.nappi_tiedostopuu.setEnabled(True)
 
@@ -304,8 +304,11 @@ class Selausikkuna(QtWidgets.QWidget):
 
     def aseta_tietokanta(self, kanta):
         self.tietokanta = kanta
-        self.aktiivipalvelin.tietokannat[self.tietokantalatain.nimi] = kanta
-        self.selauspuu_tiedosto.kansoita_tiedostorakenne(kanta)
+        self.artistipuu = Artistipuu(kanta)
+        self.aktiivipalvelin.tietokannat[self.tietokantalatain.nimi] = self.tietokanta
+        self.aktiivipalvelin.artistipuut[self.tietokantalatain.nimi] = self.artistipuu
+        self.selauspuu_tiedosto.kansoita_tiedostorakenne(self.tietokanta)
+        self.selauspuu_artisti.kansoita_artistirakenne(self.artistipuu)
         self.thread_tietokantalataus.quit()
         self.tietokantavaihtoehdot.setEnabled(True)
         self.aseta_puunakyma()
@@ -316,12 +319,15 @@ class Selausikkuna(QtWidgets.QWidget):
             return
         haettava = self.tietokantavaihtoehdot.currentText()
         kanta = self.aktiivipalvelin.tietokannat.get(haettava)
+        artistipuu = self.aktiivipalvelin.tietokannat.get(haettava)
         if kanta is None:
             self.tietokantalatain.nimi = haettava
             self.lataa_tietokanta()
         else:
             self.tietokanta = kanta
+            self.artistipuu = artistipuu
             self.selauspuu_tiedosto.kansoita_tiedostorakenne(kanta)
+            self.selauspuu_artisti.kansoita_artistirakenne(artistipuu)
         self.aseta_puunakyma()
 
     def paivita_tietokanta(self, booli):

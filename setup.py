@@ -3,7 +3,7 @@ import os
 
 setuptools.setup(
     name="musatietokanta",
-    version="v2022.04.18",
+    version="v2022.04.25",
     url="https://github.com/Pilperi/Musatietokanta",
     author="Pilperi",
     description="Työkalut musatietokantojen kanssa leikkimiseen",

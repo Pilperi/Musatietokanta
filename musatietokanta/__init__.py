@@ -1,4 +1,4 @@
-__version__ = "2022.04.18"
+__version__ = "2022.04.25"
 __author__  = "Pilperi"
 
 import os
@@ -59,6 +59,8 @@ class Palvelintiedot:
 
         self.tietokannat = {}
         self._tietokantojen_sijainti = ""
+
+        self.artistipuut = {}
 
     @property
     def nimi(self):
