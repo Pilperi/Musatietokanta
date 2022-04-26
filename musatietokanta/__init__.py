@@ -1,4 +1,4 @@
-__version__ = "2022.04.25"
+__version__ = "2022.04.26"
 __author__  = "Pilperi"
 
 import os
