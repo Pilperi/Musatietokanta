@@ -423,7 +423,7 @@ class Selausikkuna(QtWidgets.QWidget):
             return
         sijainti = self.biisilatain.polku_kohde
         komento = self.aktiivipalvelin.komento_lisaa_kappale
-        subprocess.run([*komento, sijainti])
+        subprocess.Popen([*komento, sijainti])
 
     def sylje_virhe(self, virhe):
         '''Anna virheilmoitus pop-uppina.'''
