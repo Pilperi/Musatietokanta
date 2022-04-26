@@ -2,13 +2,35 @@ __version__ = "2022.04.25"
 __author__  = "Pilperi"
 
 import os
+import sys
 import json
 import logging
+import argparse
 import configparser
 
-LOGGER = logging.getLogger(__name__)
-if not LOGGER.hasHandlers():
-    LOGGER.addHandler(logging.NullHandler())
+
+# Loggaus
+LOGGER = logging.getLogger("musatietokanta")
+def saada_loggausta(args):
+    '''
+    Säädä loggausparametreja.
+    '''
+    if args.verboosi:
+        handleri = logging.StreamHandler()
+        formaatti = logging.Formatter(
+            '[%(levelname)s] [%(asctime)s.%(msecs)03d] %(name)s.%(funcName)s: %(message)s',
+            datefmt="%Y-%m-%d %H:%M:%S")
+        handleri.setFormatter(formaatti)
+        LOGGER.addHandler(handleri)
+        LOGGER.setLevel("DEBUG")
+        LOGGER.debug("Loggeri asetettu rinttailemaan.")
+    elif not LOGGER.hasHandlers():
+        LOGGER.addHandler(logging.NullHandler())
+
+parseri = argparse.ArgumentParser(description='Musan latailu etänä.')
+parseri.add_argument('-v', '--verboosi', action='count', default=0)
+args, _ = parseri.parse_known_args()
+saada_loggausta(args)
 
 #-------------------------------------------------------------------------------
 # Koneen määritykset
