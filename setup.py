@@ -37,8 +37,6 @@ if os.path.exists(bashtiedosto):
 				kirjoitetaan = False
 				break
 			rivi = bf.readline()
-else:
-	kirjoitetaan = True
 if kirjoitetaan:
 	print(f"{bashrivi} >> {bashtiedosto}")
 	bf = open(bashtiedosto, "a+")

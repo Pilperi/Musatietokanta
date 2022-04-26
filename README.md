@@ -30,6 +30,6 @@ Tää alkaa olla jo suht koht käyttökunnossa, joten käyttöohjeet lienee paik
 		- `tyyppi`: http. Ajatuksena oli pitää messissä rinnalla ssh, mutta se odottaa implementointia.
 		- `latauskansio`: Kun biisejä ladataan, minne ne sijoitetaan. Mieluiten täyspitkä polku.
 		- `raja latausvaroitus`: Jos on lataamassa kovin montaa kappaletta kerralla, ohjelma varoittaa. Ei vielä implementoitu joten ihassama.
-		- `lisayskomento`: Komento, jolla musiikinsoitinohjelmaa kutsutaan, ts. "<komento> <biisin tiedostopolku>" -> lisää kappaleen soittolistalle.
+		- `lisayskomento`: Komento, jolla musiikinsoitinohjelmaa kutsutaan, ts. "\*komento\* \*biisin tiedostopolku\*" -> lisää kappaleen soittolistalle.
 		- `ylikirjoita`: Booleflagi. Jos false, vältetään (monet) tapaukset joissa sama kappale ladataan moneen kertaan.
 		- `tietokantojen sijainti`: Minne palvelimelta ladatut tietokannat tallennetaan (ei tarvii moneen kertaan ladata).
