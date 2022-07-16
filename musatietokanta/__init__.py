@@ -8,6 +8,7 @@ import logging
 import argparse
 import configparser
 
+os.environ['QT_IM_MODULE'] = 'fcitx' # japski-input
 
 # Loggaus
 LOGGER = logging.getLogger("musatietokanta")
